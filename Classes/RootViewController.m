@@ -232,8 +232,8 @@
 - (int)findModuleIndex:(NSString *)host
 {
     for (int i = 0; i < _modules.count; ++i) {
-        KiraModule *device = [_modules objectAtIndex:i];
-        if ([device.address isEqualToString:host]) {
+        KiraModule *module = [_modules objectAtIndex:i];
+        if ([module.address isEqualToString:host]) {
             return i;
         }
     }
@@ -243,16 +243,16 @@
 - (void)onHost:(NSString *)host discovery:(NSArray *)strings
 {
     // host probably == objectAtIndex:1
-    KiraModule *device = [[KiraModule alloc] initWithDiscovery:strings];
+    KiraModule *module = [[KiraModule alloc] initWithDiscovery:strings];
     int i = [self findModuleIndex:host];
     if (i < 0) {
-        [_modules addObject:device];
+        [_modules addObject:module];
         [self.tableView insertRow:_modules.count-1 inSection:0];
     } else {
-        [_modules replaceObjectAtIndex:i withObject:device];
+        [_modules replaceObjectAtIndex:i withObject:module];
         [self.tableView reloadRow:i inSection:0];
     }
-    [device release];
+    [module release];
     [_udpSocket sendData:[NSData dataWithBytes:"disN" length:4]
                   toHost:host
                     port:30303
@@ -270,8 +270,8 @@
         NSLog(@"Unknown host %@",host);
         return;
     }
-    KiraModule *device = [_modules objectAtIndex:i];
-    [device addBinding:binding];
+    KiraModule *module = [_modules objectAtIndex:i];
+    [module addBinding:binding];
     [self.tableView reloadRow:i inSection:0];
 }
 
