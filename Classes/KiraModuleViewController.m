@@ -40,10 +40,10 @@ enum {
 }
 */
 
-+ (id)viewControllerForModule:(KiraModule *)device
++ (id)viewControllerForModule:(KiraModule *)module_
 {
     KiraModuleViewController *controller = [[KiraModuleViewController alloc] initWithStyle:UITableViewStyleGrouped];
-    controller.device = device;
+    controller.device = module_;
     [controller autorelease];
     return controller;
 }

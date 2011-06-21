@@ -16,6 +16,6 @@
 }
 @property (nonatomic,retain) KiraModule *device;
 
-+ (id)viewControllerForModule:(KiraModule *)device;
++ (id)viewControllerForModule:(KiraModule *)module;
 
 @end
