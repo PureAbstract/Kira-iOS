@@ -1,5 +1,5 @@
 //
-//  KiraDeviceViewController.m
+//  KiraModuleViewController.m
 //  Kira
 //
 //  Created by Andy Sawyer on 20/06/2011.
@@ -18,11 +18,11 @@
 
 
 @implementation KiraModuleViewController
-@synthesize device;
+@synthesize module;
 
 enum {
     kSectionCommands,
-    kSectionDeviceInfo,
+    kSectionModuleInfo,
     kNumberOfSections
 };
 
@@ -43,7 +43,7 @@ enum {
 + (id)viewControllerForModule:(KiraModule *)module_
 {
     KiraModuleViewController *controller = [[KiraModuleViewController alloc] initWithStyle:UITableViewStyleGrouped];
-    controller.device = module_;
+    controller.module = module_;
     [controller autorelease];
     return controller;
 }
@@ -56,8 +56,9 @@ enum {
 
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
     // self.navigationItem.rightBarButtonItem = self.editButtonItem;
-    self.title = device.address;
+    self.title = module.address;
     _socket = [[AsyncUdpSocket alloc] initIPv4]; /* The devices don't (AFAIK!) support IPv6... */
+    [_socket setDelegate:self];
 }
 
 /*
@@ -89,15 +90,15 @@ enum {
 */
 
 #pragma mark -
-#pragma mark Device messages
+#pragma mark Modules messages
 - (void)sendCmd:(const void *)cmd length:(int)length
 {
     // We're just doing fire & forget here... not listening for ACK at all.
     // the device behaviour seems quite odd - it can recieve a command *from* any port (which is good),
     // but only sends ACK out if MY socket is bound to the same port number...
     [_socket sendData:[NSData dataWithBytes:cmd length:length]
-               toHost:device.address
-                 port:[device.port intValue]
+               toHost:module.address
+                 port:[module.port intValue]
           withTimeout:-1
                   tag:0];
 }
@@ -115,10 +116,10 @@ enum {
     // Return the number of rows in the section.
     switch (section) {
         case kSectionCommands:
-            return device.bindings.count;
+            return module.bindings.count;
             break;
-        case kSectionDeviceInfo:
-            return device.discover.count;
+        case kSectionModuleInfo:
+            return module.discover.count;
             break;
         default:
             NSAssert(0,@"Invalid section index");
@@ -140,14 +141,14 @@ enum {
     
     // Configure the cell...
     switch (indexPath.section) {
-        case kSectionDeviceInfo:
-            cell.textLabel.text = [device.discover objectAtIndex:indexPath.row];
+        case kSectionModuleInfo:
+            cell.textLabel.text = [module.discover objectAtIndex:indexPath.row];
             break;
         case kSectionCommands:
         {
             // This is a bit rubbish...
             NSString *key = [NSString stringWithFormat:@"%02X",indexPath.row+1];
-            NSString *bind = [device.bindings objectForKey:key];
+            NSString *bind = [module.bindings objectForKey:key];
             cell.textLabel.text = bind;
         }
             break;
@@ -239,7 +240,7 @@ enum {
 
 - (void)dealloc {
     [_socket release];
-    [device release];
+    [module release];
     [super dealloc];
 }
 

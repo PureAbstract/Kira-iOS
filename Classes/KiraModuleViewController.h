@@ -1,5 +1,5 @@
 //
-//  KiraDeviceViewController.h
+//  KiraModuleViewController.h
 //  Kira
 //
 //  Created by Andy Sawyer on 20/06/2011.
@@ -10,11 +10,11 @@
 #import "KiraModule.h"
 #import "AsyncUdpSocket.h"
 
-@interface KiraModuleViewController : UITableViewController {
-    KiraModule *device;
+@interface KiraModuleViewController : UITableViewController <AsyncUdpSocketDelegate> {
+    KiraModule *module;
     AsyncUdpSocket *_socket;
 }
-@property (nonatomic,retain) KiraModule *device;
+@property (nonatomic,retain) KiraModule *module;
 
 + (id)viewControllerForModule:(KiraModule *)module;
 
