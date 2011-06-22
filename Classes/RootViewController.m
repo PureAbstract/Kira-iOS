@@ -37,15 +37,30 @@
 
 @implementation RootViewController
 
+- (void)sendPacket:(const void *)bytes length:(int)length to:(NSString *)address port:(int)port
+{
+    if( !address )
+        address = @"255.255.255.255";
+    NSData *packet = [NSData dataWithBytes:bytes length:length];
+    [_udpSocket sendData:packet
+                  toHost:address
+                    port:port
+             withTimeout:10.0
+                     tag:0];
+}
+
 
 - (void)onCmdRefresh
 {
+    [self sendPacket:"disD" length:4 to:nil port:30303];
+    /*
     NSData *packet = [NSData dataWithBytes:"disD" length:4];
     [_udpSocket sendData:packet
                   toHost:@"255.255.255.255"
                     port:30303
              withTimeout:10.0
                      tag:0];
+     */
 }
 
 #pragma mark -
@@ -56,7 +71,7 @@
     [super viewDidLoad];
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
     // self.navigationItem.rightBarButtonItem = self.editButtonItem;
-    self.title = @"Root View";
+    self.title = @"Modules";
 
     _modules = [NSMutableArray new];
     UIBarButtonItem *refresh = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemRefresh
@@ -65,7 +80,8 @@
     self.navigationItem.leftBarButtonItem = refresh;
     [refresh release];
 
-    _udpSocket = [[AsyncUdpSocket alloc] initWithDelegate:self];
+    _udpSocket = [[AsyncUdpSocket alloc] initIPv4];
+    [_udpSocket setDelegate:self];
     NSError *err = NULL;
     [_udpSocket bindToPort:30303 error:&err];
     [_udpSocket enableBroadcast:TRUE error:&err];
@@ -115,9 +131,7 @@
 // Customize the number of rows in the table view.
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     int n = _modules.count;
-    if( n > 0 )
-        return n;
-    return 1;
+    return n;
 }
 
 
@@ -132,20 +146,10 @@
     }
 	// Configure the cell.
     int n = _modules.count;
-    if( n == 0 )
-    {
-        // FIXME: This pane wants a little animated dohicky...
-        cell.textLabel.text = @"Searching...";
-        cell.detailTextLabel.text = @"";
-        cell.textLabel.textColor = [UIColor grayColor];
-    }
-    else
-    {
-        KiraModule *module = [_modules objectAtIndex:indexPath.row];
-        cell.textLabel.text = module.name;
-        cell.textLabel.textColor = [UIColor blackColor];
-        cell.detailTextLabel.text = [NSString stringWithFormat:@"%@:%@ (%d)",module.address,module.port,module.bindings.count];
-    }
+    KiraModule *module = [_modules objectAtIndex:indexPath.row];
+    cell.textLabel.text = module.name;
+    cell.textLabel.textColor = [UIColor blackColor];
+    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@:%@ (%d)",module.address,module.port,module.bindings.count];
     return cell;
 }
 
@@ -253,11 +257,14 @@
         [self.tableView reloadRow:i inSection:0];
     }
     [module release];
+    /*
     [_udpSocket sendData:[NSData dataWithBytes:"disN" length:4]
                   toHost:host
                     port:30303
              withTimeout:10.0
                      tag:1];
+     */
+    [self sendPacket:"disN" length:4 to:host port:30303];
 }
 
 
@@ -277,6 +284,12 @@
 
 #pragma mark -
 #pragma mark AsyncUdpSocketDelegate
+
+
+- (void)onUdpSocket:(AsyncUdpSocket *)sock didNotSendDataWithTag:(long)tag dueToError:(NSError *)error
+{
+    // This is interesting. Maybe...
+}
 
 
 /**
