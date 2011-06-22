@@ -1,5 +1,5 @@
 //
-//  KiraDevice.m
+//  KiraModule.m
 //  Kira
 //
 //  Created by Andy Sawyer on 20/06/2011.

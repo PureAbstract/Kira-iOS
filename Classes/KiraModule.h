@@ -1,5 +1,5 @@
 //
-//  KiraDevice.h
+//  KiraModule.h
 //  Kira
 //
 //  Created by Andy Sawyer on 20/06/2011.
