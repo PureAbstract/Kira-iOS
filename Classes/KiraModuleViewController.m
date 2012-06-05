@@ -81,13 +81,14 @@ enum {
     [super viewDidDisappear:animated];
 }
 */
-/*
+
 // Override to allow orientations other than the default portrait orientation.
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
     // Return YES for supported orientations.
-    return (interfaceOrientation == UIInterfaceOrientationPortrait);
+    // return (interfaceOrientation == UIInterfaceOrientationPortrait);
+    return YES;
 }
-*/
+
 
 #pragma mark -
 #pragma mark Modules messages
@@ -109,6 +110,18 @@ enum {
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
     // Return the number of sections.
     return kNumberOfSections;
+}
+
+// fixed font style. use custom view (UILabel) if you want something different
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section
+{
+    switch( section ) {
+    case kSectionCommands:
+        return NSLocalizedString(@"Commands",nil);
+    case kSectionModuleInfo:
+        return NSLocalizedString(@"Module Information",nil);
+    }
+    return NSLocalizedString(@"Invalid Section Index",nil);
 }
 
 
