@@ -3,7 +3,7 @@
 //  Kira
 //
 //  Created by Andy Sawyer on 13/06/2011.
-//  Copyright 2011 __MyCompanyName__. All rights reserved.
+//  Copyright 2011 Andy Sawyer. All rights reserved.
 //
 
 #import "RootViewController.h"
@@ -101,20 +101,20 @@
 */
 /*
 - (void)viewWillDisappear:(BOOL)animated {
-	[super viewWillDisappear:animated];
+    [super viewWillDisappear:animated];
 }
 */
 /*
 - (void)viewDidDisappear:(BOOL)animated {
-	[super viewDidDisappear:animated];
+    [super viewDidDisappear:animated];
 }
 */
 
 /*
  // Override to allow orientations other than the default portrait orientation.
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
-	// Return YES for supported orientations.
-	return (interfaceOrientation == UIInterfaceOrientationPortrait);
+    // Return YES for supported orientations.
+    return (interfaceOrientation == UIInterfaceOrientationPortrait);
 }
  */
 
@@ -137,14 +137,14 @@
 
 // Customize the appearance of table view cells.
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
-    
+
     static NSString *CellIdentifier = @"Cell";
-    
+
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
     if (cell == nil) {
         cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellIdentifier] autorelease];
     }
-	// Configure the cell.
+    // Configure the cell.
     int n = _modules.count;
     KiraModule *module = [_modules objectAtIndex:indexPath.row];
     cell.textLabel.text = module.name;
@@ -166,14 +166,14 @@
 /*
 // Override to support editing the table view.
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
-    
+
     if (editingStyle == UITableViewCellEditingStyleDelete) {
         // Delete the row from the data source.
         [tableView deleteRowsAtIndexPaths:[NSArray arrayWithObject:indexPath] withRowAnimation:UITableViewRowAnimationFade];
-    }   
+    }
     else if (editingStyle == UITableViewCellEditingStyleInsert) {
         // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view.
-    }   
+    }
 }
 */
 
@@ -213,7 +213,7 @@
 - (void)didReceiveMemoryWarning {
     // Releases the view if it doesn't have a superview.
     [super didReceiveMemoryWarning];
-    
+
     // Relinquish ownership any cached data, images, etc that aren't in use.
 }
 
@@ -294,7 +294,7 @@
 
 /**
  * Called when the socket has received the requested datagram.
- * 
+ *
  * Due to the nature of UDP, you may occasionally receive undesired packets.
  * These may be rogue UDP packets from unknown hosts,
  * or they may be delayed packets arriving after retransmissions have already occurred.
@@ -307,7 +307,7 @@
  * If rogue data arrives after 250 milliseconds, this delegate method would be invoked, and you could simply return NO.
  * If the expected data then arrives within the next 250 milliseconds,
  * this delegate method will be invoked, with a tag of 15, just as if the rogue data never appeared.
- * 
+ *
  * Under normal circumstances, you simply return YES from this method.
  **/
 - (BOOL)onUdpSocket:(AsyncUdpSocket *)sock didReceiveData:(NSData *)data withTag:(long)tag fromHost:(NSString *)host port:(UInt16)port
