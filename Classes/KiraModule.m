@@ -14,15 +14,16 @@
 
 -(void)dealloc {
     [self.discover release];
-    [self.bindings release];
+    [_bindings release];
     [super dealloc];
 }
+
 
 -(id)initWithDiscovery:(NSArray *)discover_
 {
     if (self = [super init]) {
         self.discover = discover_;
-        self->_bindings = [NSMutableDictionary new];
+        _bindings = [[NSMutableDictionary alloc] initWithCapacity:128];
     }
     return self;
 }
@@ -43,8 +44,8 @@
     NSString *index = [binding substringToIndex:2];
     NSAssert(index.length==2,@"Bad index");
     NSString *mapping = [binding substringFromIndex:3];
-    NSLog(@"[%@][%@]",index,mapping);
-    [self->_bindings setObject:mapping forKey:index];
+    NSLog(@"[%@][%@]",index,mapping);    
+    [_bindings setObject:mapping forKey:index];
 }
 
 @end
