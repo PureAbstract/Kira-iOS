@@ -15,7 +15,6 @@
 		28AD73600D9D9599002E5188 /* MainWindow.xib in Resources */ = {isa = PBXBuildFile; fileRef = 28AD735F0D9D9599002E5188 /* MainWindow.xib */; };
 		28C286E10D94DF7D0034E888 /* RootViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 28C286E00D94DF7D0034E888 /* RootViewController.m */; };
 		28F335F11007B36200424DE2 /* RootViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 28F335F01007B36200424DE2 /* RootViewController.xib */; };
-		E3368E6A13AFD0EE0024085F /* AsyncUdpSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = E3368E6913AFD0EE0024085F /* AsyncUdpSocket.m */; };
 		E336916513AFFCA50024085F /* KiraModuleViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E336916413AFFCA50024085F /* KiraModuleViewController.m */; };
 		E336916E13AFFCF00024085F /* KiraModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E336916D13AFFCF00024085F /* KiraModule.m */; };
 		E3E59C96157EE7DD0054F05D /* UdpSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = E3E59C95157EE7DD0054F05D /* UdpSocket.m */; };
@@ -35,8 +34,6 @@
 		28F335F01007B36200424DE2 /* RootViewController.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = RootViewController.xib; sourceTree = "<group>"; };
 		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		8D1107310486CEB800E47090 /* Kira-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "Kira-Info.plist"; plistStructureDefinitionIdentifier = "com.apple.xcode.plist.structure-definition.iphone.info-plist"; sourceTree = "<group>"; };
-		E3368E6813AFD0EE0024085F /* AsyncUdpSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AsyncUdpSocket.h; path = "../cocoaasyncsocket-read-only/RunLoop/AsyncUdpSocket.h"; sourceTree = SOURCE_ROOT; };
-		E3368E6913AFD0EE0024085F /* AsyncUdpSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AsyncUdpSocket.m; path = "../cocoaasyncsocket-read-only/RunLoop/AsyncUdpSocket.m"; sourceTree = SOURCE_ROOT; };
 		E336916313AFFCA50024085F /* KiraModuleViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KiraModuleViewController.h; sourceTree = "<group>"; };
 		E336916413AFFCA50024085F /* KiraModuleViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KiraModuleViewController.m; sourceTree = "<group>"; };
 		E336916C13AFFCF00024085F /* KiraModule.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KiraModule.h; sourceTree = "<group>"; };
@@ -66,8 +63,6 @@
 				E3E59C95157EE7DD0054F05D /* UdpSocket.m */,
 				E336916C13AFFCF00024085F /* KiraModule.h */,
 				E336916D13AFFCF00024085F /* KiraModule.m */,
-				E3368E6813AFD0EE0024085F /* AsyncUdpSocket.h */,
-				E3368E6913AFD0EE0024085F /* AsyncUdpSocket.m */,
 				28C286DF0D94DF7D0034E888 /* RootViewController.h */,
 				28C286E00D94DF7D0034E888 /* RootViewController.m */,
 				1D3623240D0F684500981E51 /* KiraAppDelegate.h */,
@@ -192,7 +187,6 @@
 				1D60589B0D05DD56006BFB54 /* main.m in Sources */,
 				1D3623260D0F684500981E51 /* KiraAppDelegate.m in Sources */,
 				28C286E10D94DF7D0034E888 /* RootViewController.m in Sources */,
-				E3368E6A13AFD0EE0024085F /* AsyncUdpSocket.m in Sources */,
 				E336916513AFFCA50024085F /* KiraModuleViewController.m in Sources */,
 				E336916E13AFFCF00024085F /* KiraModule.m in Sources */,
 				E3E59C96157EE7DD0054F05D /* UdpSocket.m in Sources */,

@@ -57,8 +57,7 @@ enum {
     // Uncomment the following line to display an Edit button in the navigation bar for this view controller.
     // self.navigationItem.rightBarButtonItem = self.editButtonItem;
     self.title = module.address;
-    _socket = [[AsyncUdpSocket alloc] initIPv4]; /* The devices don't (AFAIK!) support IPv6... */
-    [_socket setDelegate:self];
+    _socket = [UdpSocket new];
 }
 
 /*
@@ -97,11 +96,10 @@ enum {
     // We're just doing fire & forget here... not listening for ACK at all.
     // the device behaviour seems quite odd - it can recieve a command *from* any port (which is good),
     // but only sends ACK out if MY socket is bound to the same port number...
-    [_socket sendData:[NSData dataWithBytes:cmd length:length]
-               toHost:module.address
-                 port:[module.port intValue]
-          withTimeout:-1
-                  tag:0];
+    [_socket send:[NSData dataWithBytes:cmd length:length]
+             host:module.address
+             port:[module.port intValue]
+              tag:nil];
 }
 
 #pragma mark -

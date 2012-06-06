@@ -7,10 +7,9 @@
 //
 
 #import <UIKit/UIKit.h>
-//#import "AsyncUdpSocket.h"
 #import "UdpSocket.h"
+
 @interface RootViewController : UITableViewController <UdpSocketTxDelegate, UdpSocketRxDelegate> {
-    //AsyncUdpSocket *_udpSocket;
     UdpSocket *_socket;
     NSMutableArray *_modules;
 }

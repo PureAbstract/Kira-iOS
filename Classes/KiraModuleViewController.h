@@ -8,11 +8,13 @@
 
 #import <UIKit/UIKit.h>
 #import "KiraModule.h"
-#import "AsyncUdpSocket.h"
+//#import "AsyncUdpSocket.h"
+#import "UdpSocket.h"
 
-@interface KiraModuleViewController : UITableViewController <AsyncUdpSocketDelegate> {
+@interface KiraModuleViewController : UITableViewController {
     KiraModule *module;
-    AsyncUdpSocket *_socket;
+    //AsyncUdpSocket *_socket;
+    UdpSocket *_socket;
 }
 @property (nonatomic,retain) KiraModule *module;
 

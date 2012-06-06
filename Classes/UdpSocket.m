@@ -4,15 +4,10 @@
 #import <netinet/in.h>
 #import <netdb.h>
 #import <arpa/inet.h>
-
-//#import <sys/ioctl.h>
 #import <net/if.h>
-
-
-
 #import <CFNetwork/CFNetwork.h>
 
-
+// Create an NSData representing an sockaddr_in
 static NSData *getInAddr( in_addr_t address, UInt16 port ) {
     struct sockaddr_in addr;
     bzero( &addr, sizeof(addr) );
@@ -62,9 +57,14 @@ static NSData *getHostAddress( NSString *host, UInt16 port ) {
 }
 
 @implementation UdpSocketPacket
+#pragma mark -
+#pragma mark Properties
 @synthesize data = data_;
 @synthesize address = address_;
 @synthesize tag = tag_;
+
+#pragma mark -
+#pragma mark Initialisation
 -(id)initWithData:(NSData *)data address:(NSData *)address tag:(NSObject *)tag
 {
     NSAssert( data, @"null data" );
@@ -78,6 +78,8 @@ static NSData *getHostAddress( NSString *host, UInt16 port ) {
     return self;
 }
 
+#pragma mark -
+#pragma mark Memory Management
 -(void)dealloc {
     [data_ release];
     [address_ release];
@@ -88,58 +90,29 @@ static NSData *getHostAddress( NSString *host, UInt16 port ) {
 
 
 
-@interface UdpSocket (internal)
--(void)doCallback:(CFSocketCallBackType)type
-           socket:(CFSocketRef)socket
-          address:(CFDataRef)address
-             data:(const void *)data;
-@end
+// Forward declare the callback function
+static void UdpSocketCFSocketCallback( CFSocketRef socket,
+                                       CFSocketCallBackType type,
+                                       CFDataRef address,
+                                       const void *pData,
+                                       void *pInfo );
 
 @implementation UdpSocket
+#pragma mark -
+#pragma mark Properties
 @synthesize txDelegate = txDelegate_;
 @synthesize rxDelegate = rxDelegate_;
 
-static void theCFSocketCallback( CFSocketRef socket,
-                                 CFSocketCallBackType type,
-                                 CFDataRef address,
-                                 const void *pData,
-                                 void *pInfo )
-{
-    UdpSocket *udp = (UdpSocket *)pInfo;
-    [udp retain];
-    [udp doCallback:type
-             socket:socket
-            address:address
-               data:pData];
-    [udp release];
-}
-
-
-
+#pragma mark -
+#pragma mark Memory Management
 -(void)dealloc {
     [self close];
-    [recvBuf_ release];
-    [sendBuf_ release];
+    [sendQueue_ release];
     [super dealloc];
 }
 
--(void)close
-{
-    if( sourceRef_ ) {
-        CFRunLoopRemoveSource( runLoop_, sourceRef_, (CFStringRef)NSDefaultRunLoopMode );
-        CFRelease( sourceRef_ );
-        sourceRef_ = NULL;
-    }
-    if( socket_ ) {
-        CFSocketInvalidate( socket_ );
-        CFRelease( socket_ );
-        socket_ = NULL;
-    }
-    [recvBuf_ removeAllObjects];
-    [sendBuf_ removeAllObjects];
-    runLoop_ = NULL;
-}
-
+#pragma mark -
+#pragma mark Initialisation
 -(id)init {
     self = [super init];
     if( self ) {
@@ -154,23 +127,39 @@ static void theCFSocketCallback( CFSocketRef socket,
                                   SOCK_DGRAM,
                                   IPPROTO_UDP,
                                   kCFSocketReadCallBack | kCFSocketWriteCallBack,
-                                  theCFSocketCallback,
+                                  UdpSocketCFSocketCallback,
                                   &context_ );
         // This us supposed to stop us getting continuous callbacks
         //CFSocketSetSocketFlags( socket_, kCFSocketCloseOnInvalidate );
         runLoop_ = CFRunLoopGetCurrent();
         sourceRef_ = CFSocketCreateRunLoopSource( kCFAllocatorDefault, socket_, 0 );
         CFRunLoopAddSource( runLoop_, sourceRef_, (CFStringRef)NSDefaultRunLoopMode );
-        recvBuf_ = [NSMutableArray new];
-        sendBuf_ = [NSMutableArray new];
+        sendQueue_ = [NSMutableArray new];
     }
     return self;
+}
+
+-(void)close
+{
+    if( sourceRef_ ) {
+        CFRunLoopRemoveSource( runLoop_, sourceRef_, (CFStringRef)NSDefaultRunLoopMode );
+        CFRelease( sourceRef_ );
+        sourceRef_ = NULL;
+    }
+    if( socket_ ) {
+        CFSocketInvalidate( socket_ );
+        CFRelease( socket_ );
+        socket_ = NULL;
+    }
+    [sendQueue_ removeAllObjects];
+    runLoop_ = NULL;
 }
 
 -(BOOL)bindToHost:(NSString *)host port:(UInt16)port
 {
     NSData *addr = getHostAddress( host, port );
     if( !addr ) {
+        NSLog(@"bindToHost:port - getHostAddress failed");
         return NO;
     }
     // enable reuseaddr
@@ -181,6 +170,7 @@ static void theCFSocketCallback( CFSocketRef socket,
     if( err == kCFSocketSuccess ) {
         return YES;
     }
+    NSLog(@"bindToHost:port - CFSocketSetAddress failed");
     return NO;
 }
 
@@ -195,7 +185,6 @@ static void theCFSocketCallback( CFSocketRef socket,
     int err = setsockopt( CFSocketGetNative(socket_), SOL_SOCKET, SO_BROADCAST, &on, sizeof(on) );
     return ( err == 0 );
 }
-
 
 -(void)delegateRxError:(int)error
 {
@@ -215,49 +204,65 @@ static void theCFSocketCallback( CFSocketRef socket,
     fd_set fds;
     FD_ZERO(&fds);
     FD_SET(CFSocketGetNative(socket), &fds);
-	
+
     struct timeval timeout;
     timeout.tv_sec = 0;
     timeout.tv_usec = 0;
-	
+
     return select(FD_SETSIZE, NULL, &fds, NULL, &timeout) > 0;
 }
 
--(void)forceWrite:(CFSocketRef)socket
+-(BOOL)canRead:(CFSocketRef)socket
 {
-    if( sendBuf_.count < 1 ) {
-        NSLog(@"forceWrite: Send buffer empty");
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(CFSocketGetNative(socket), &fds);
+
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+
+    return select(FD_SETSIZE, &fds, NULL, NULL, &timeout) > 0;
+}
+
+-(void)tryWrite:(CFSocketRef)socket
+{
+    if( sendQueue_.count < 1 ) {
+        NSLog(@"tryWrite: Send buffer empty");
         return;
     }
     if( ![self canWrite:socket] ) {
-        NSLog(@"forceWrite: Socket not writeable");
+        NSLog(@"tryWrite: Socket not writeable");
         return;
     }
-    UdpSocketPacket *packet = [[sendBuf_ objectAtIndex:0] retain];
-    [sendBuf_ removeObjectAtIndex:0];
-    // write the packet
+    // Pop a packet from the queue...
+    UdpSocketPacket *packet = [[sendQueue_ objectAtIndex:0] retain];
+    [sendQueue_ removeObjectAtIndex:0];
+    // write it
     int sent = sendto( CFSocketGetNative(socket),
                        packet.data.bytes,
                        packet.data.length,
                        0,
                        packet.address.bytes,
                        packet.address.length );
+    // See what happened
     if( sent == packet.data.length ) {
-        // TODO: Can we schedule this to run later?
-        if( txDelegate_ && [rxDelegate_ respondsToSelector:@selector(udpSocketTxData:)] ) {
-            [txDelegate_ udpSocketTxData:self];
+        if( txDelegate_ && [txDelegate_ respondsToSelector:@selector(udpSocket:sentDataWithTag:)] ) {
+            [txDelegate_ udpSocket:self
+                   sentDataWithTag:packet.tag];
         }
     } else {
         // This is bad...
-        [self delegateTxError:-1]; // FIXME
+        [self delegateTxError:errno]; // FIXME
     }
     [packet release];
 }
 
 
+// Called from the callback.
 -(void)onWrite:(CFSocketRef)socket
 {
-    [self forceWrite:socket];
+    [self tryWrite:socket];
 }
 
 -(BOOL)send:(NSData *)data host:(NSString *)host port:(UInt16)port tag:(NSObject *)tag;
@@ -268,16 +273,20 @@ static void theCFSocketCallback( CFSocketRef socket,
         return NO;
     }
     UdpSocketPacket *packet = [[UdpSocketPacket alloc] initWithData:data address:hostAddr tag:tag];
-    [sendBuf_ addObject:packet];
+    [sendQueue_ addObject:packet];
     [packet release];
-    [self forceWrite:socket_];
+    [self tryWrite:socket_];
     return YES;
 }
 
 -(void)onRead:(CFSocketRef)socket
 {
+    if( ![self canRead:socket] ) {
+        NSLog(@"onRead: Socket not readable");
+        return;
+    }
     // Recieve the packet...
-    size_t size = 8192;         // Magic number
+    size_t size = 32768;        // Magic number
     void *buf = malloc( size );
     struct sockaddr_in addr;
     bzero( &addr, sizeof(addr) );
@@ -291,7 +300,7 @@ static void theCFSocketCallback( CFSocketRef socket,
     if( result < 0 ) {
         NSLog(@"Receive failed %d",result);
         free(buf);
-        [self delegateRxError:result]; // FIXME
+        [self delegateRxError:errno];
         return;
     }
     // Try and realloc...
@@ -313,37 +322,18 @@ static void theCFSocketCallback( CFSocketRef socket,
                                                     address:address
                                                         tag:nil];
 
-    [recvBuf_ addObject:packet]; // TODO: The address
-    if( rxDelegate_ && [rxDelegate_ respondsToSelector:@selector(udpSocketRxData:)] ) {
-        [rxDelegate_ udpSocketRxData:self];
-    }
-    [packet release];
     [address release];
     [data release];
-}
-
--(NSUInteger)rxQueueCount
-{
-    return recvBuf_.count;
-}
-
--(UdpSocketPacket *)peekRxQueue
-{
-    if( recvBuf_.count ) {
-        return [recvBuf_ objectAtIndex:0];
+    if( rxDelegate_ && [rxDelegate_ respondsToSelector:@selector(udpSocket:receivedData:)] ) {
+        [rxDelegate_ udpSocket:self
+                  receivedData:packet];
+    } else {
+        // Just discard it
+        NSLog(@"Discarding packet");
     }
-    return nil;
+    [packet release];
 }
 
--(UdpSocketPacket *)popRxQueue
-{
-    if( recvBuf_.count ) {
-        UdpSocketPacket *packet = [[recvBuf_ objectAtIndex:0] retain];
-        [recvBuf_ removeObjectAtIndex:0];
-        return [packet autorelease];
-    }
-    return nil;
-}
 
 +(NSString *)hostname:(NSData *)data
 {
@@ -353,18 +343,16 @@ static void theCFSocketCallback( CFSocketRef socket,
         return nil;
     }
     [data getBytes:&addr length:sizeof(addr)];
-    char addrBuf[INET_ADDRSTRLEN];
-    if( !inet_ntop(AF_INET, &addr.sin_addr, addrBuf, sizeof(addrBuf) ) ) {
-        NSLog(@"hostname : inet_ntop failed");
+    char buffer[INET_ADDRSTRLEN];
+    if( !inet_ntop(AF_INET, &addr.sin_addr, buffer, sizeof(buffer) ) ) {
+        NSLog(@"hostname : inet_ntop failed %d",errno);
         return nil;
     }
-    return [NSString stringWithCString:addrBuf encoding:NSASCIIStringEncoding];
+    return [NSString stringWithCString:buffer encoding:NSASCIIStringEncoding];
 }
 
-@end
-
-
-@implementation UdpSocket (internal)
+#pragma mark -
+#pragma mark Callback Method
 -(void)doCallback:(CFSocketCallBackType)type
            socket:(CFSocketRef)socket
           address:(CFDataRef)address
@@ -388,4 +376,23 @@ static void theCFSocketCallback( CFSocketRef socket,
             break;
         }
 }
+
+
+#pragma mark -
+#pragma mark Callback function
+static void UdpSocketCFSocketCallback( CFSocketRef socket,
+                                 CFSocketCallBackType type,
+                                 CFDataRef address,
+                                 const void *pData,
+                                 void *pInfo )
+{
+    UdpSocket *udp = (UdpSocket *)pInfo;
+    [udp retain];
+    [udp doCallback:type
+             socket:socket
+            address:address
+               data:pData];
+    [udp release];
+}
 @end
+

@@ -11,23 +11,38 @@
 #import "KiraModuleViewController.h"
 
 @interface UITableView (UpdateHelper)
+// TODO: Specify animation type
 - (void)reloadRow:(int)row inSection:(int)section;
 - (void)insertRow:(int)row inSection:(int)section;
+
+- (void)reloadRow:(int)row inSection:(int)section withAnimation:(UITableViewRowAnimation)animation;
+- (void)insertRow:(int)row inSection:(int)section withAnimation:(UITableViewRowAnimation)animation;
 @end
 
 @implementation UITableView (UpdateHelper)
-- (void)reloadRow:(int)row inSection:(int)section
+- (void)reloadRow:(int)row inSection:(int)section withAnimation:(UITableViewRowAnimation)animation
 {
     NSIndexPath *path = [NSIndexPath indexPathForRow:row inSection:section];
     [self reloadRowsAtIndexPaths:[NSArray arrayWithObject:path]
-                withRowAnimation:UITableViewRowAnimationFade];
+                withRowAnimation:animation];
+}
+
+- (void)insertRow:(int)row inSection:(int)section withAnimation:(UITableViewRowAnimation)animation
+{
+    NSIndexPath *path = [NSIndexPath indexPathForRow:row inSection:section];
+    [self insertRowsAtIndexPaths:[NSArray arrayWithObject:path]
+                withRowAnimation:animation];
+}
+
+
+- (void)reloadRow:(int)row inSection:(int)section
+{
+    [self reloadRow:row inSection:section withAnimation:UITableViewRowAnimationFade];
 }
 
 - (void)insertRow:(int)row inSection:(int)section
 {
-    NSIndexPath *path = [NSIndexPath indexPathForRow:row inSection:section];
-    [self insertRowsAtIndexPaths:[NSArray arrayWithObject:path]
-                withRowAnimation:UITableViewRowAnimationFade];
+    [self insertRow:row inSection:section withAnimation:UITableViewRowAnimationFade];
 }
 
 @end
@@ -42,11 +57,6 @@
     if( !address )
         address = @"255.255.255.255";
     NSData *packet = [NSData dataWithBytes:bytes length:length];
-    // [_udpSocket sendData:packet
-    //               toHost:address
-    //                 port:port
-    //          withTimeout:10.0
-    //                  tag:0];
     [_socket send:packet
              host:address
              port:port
@@ -57,14 +67,6 @@
 - (void)onCmdRefresh
 {
     [self sendPacket:"disD" length:4 to:nil port:30303];
-    /*
-    NSData *packet = [NSData dataWithBytes:"disD" length:4];
-    [_udpSocket sendData:packet
-                  toHost:@"255.255.255.255"
-                    port:30303
-             withTimeout:10.0
-                     tag:0];
-     */
 }
 
 #pragma mark -
@@ -84,17 +86,11 @@
     self.navigationItem.leftBarButtonItem = refresh;
     [refresh release];
 
-    //_udpSocket = [[AsyncUdpSocket alloc] initIPv4];
-    //[_udpSocket setDelegate:self];
-    _socket = [[UdpSocket alloc] init];
+    _socket = [UdpSocket new];
     _socket.txDelegate = self;
     _socket.rxDelegate = self;
-    NSError *err = NULL;
     [_socket bindToPort:30303];
-    // [_udpSocket bindToPort:30303 error:&err];
     [_socket enableBroadcast];
-    //[_udpSocket enableBroadcast:TRUE error:&err];
-    //[_udpSocket receiveWithTimeout:-1 tag:0];
     [self onCmdRefresh];
 }
 
@@ -154,7 +150,6 @@
         cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellIdentifier] autorelease];
     }
     // Configure the cell.
-    int n = _modules.count;
     KiraModule *module = [_modules objectAtIndex:indexPath.row];
     cell.textLabel.text = module.name;
     cell.textLabel.textColor = [UIColor blackColor];
@@ -266,13 +261,6 @@
         [self.tableView reloadRow:i inSection:0];
     }
     [module release];
-    /*
-    [_udpSocket sendData:[NSData dataWithBytes:"disN" length:4]
-                  toHost:host
-                    port:30303
-             withTimeout:10.0
-                     tag:1];
-     */
     [self sendPacket:"disN" length:4 to:host port:30303];
 }
 
@@ -288,123 +276,39 @@
     }
     KiraModule *module = [_modules objectAtIndex:i];
     [module addBinding:binding];
-    [self.tableView reloadRow:i inSection:0];
+    [self.tableView reloadRow:i
+                    inSection:0
+                withAnimation:UITableViewRowAnimationNone];
 }
 
 #pragma mark -
-#pragma mark AsyncUdpSocketDelegate
-
-
-- (void)onUdpSocket:(AsyncUdpSocket *)sock didNotSendDataWithTag:(long)tag dueToError:(NSError *)error
+#pragma mark Handle Network packet
+-(void)onRxData:(NSData *)data address:(NSData *)address
 {
-    // This is interesting. Maybe...
-}
-
-
-/**
- * Called when the socket has received the requested datagram.
- *
- * Due to the nature of UDP, you may occasionally receive undesired packets.
- * These may be rogue UDP packets from unknown hosts,
- * or they may be delayed packets arriving after retransmissions have already occurred.
- * It's important these packets are properly ignored, while not interfering with the flow of your implementation.
- * As an aid, this delegate method has a boolean return value.
- * If you ever need to ignore a received packet, simply return NO,
- * and AsyncUdpSocket will continue as if the packet never arrived.
- * That is, the original receive request will still be queued, and will still timeout as usual if a timeout was set.
- * For example, say you requested to receive data, and you set a timeout of 500 milliseconds, using a tag of 15.
- * If rogue data arrives after 250 milliseconds, this delegate method would be invoked, and you could simply return NO.
- * If the expected data then arrives within the next 250 milliseconds,
- * this delegate method will be invoked, with a tag of 15, just as if the rogue data never appeared.
- *
- * Under normal circumstances, you simply return YES from this method.
- **/
-- (BOOL)onUdpSocket:(AsyncUdpSocket *)sock didReceiveData:(NSData *)data withTag:(long)tag fromHost:(NSString *)host port:(UInt16)port
-{
-    if (data.length<=4) {
-        return NO;
-    }
-    NSString *info = [[[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding] autorelease];
-    if ([info isEqualToString:@"disD"]) {
-        // Probably our own discover packet...
-        return NO;
-    }
-    if ([info isEqualToString:@"disN"]) {
-        // Our own enquire
-        return NO;
-    }
-
-    NSArray *strings = [info componentsSeparatedByString:@"\r\n"];
-    NSString *header = [strings objectAtIndex:0];
-
-    if ([@"disR" isEqualToString:header]) {
-        // It's a response, but not the one we care about...
-        return NO;
-    }
-
-    int count = [strings count];
-    if (count==2) {
-        [self onHost:host binding:header];
-        return NO;
-    }
-    if (count>3) {
-        [self onHost:host discovery:strings];
-        return NO;
-    }
-    // WTF?
-    NSLog(@"WTF?");
-    return NO;
-}
-
-#pragma mark -
-#pragma mark UdpSocketTxDelegate
--(void)udpSocket:(UdpSocket *)socket txError:(int)error
-{
-    NSLog(@"udpsocket txError %d",error);
-}
-
--(void)udpSocketTxData:(UdpSocket *)socket
-{
-}
-
-#pragma mark -
-#pragma mark UdpSocketRxDelegate
--(void)udpSocket:(UdpSocket *)socket rxError:(int)error
-{
-    NSLog(@"udpsocket rxError %d",error);
-}
-
--(void)udpSocketRxData:(UdpSocket *)socket
-{
-    UdpSocketPacket *packet = [socket popRxQueue];
-    if( !packet ) {
-        return;
-    }
-    NSData *data = packet.data;
-    NSLog(@"Rx %d",data.length);
     if( data.length <= 4 ) {
+        NSLog(@"Rx : Too short %d",data.length);
         return;
     }
     NSString *info = [[[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding] autorelease];
-    if( [@"disD" isEqualToString:info] ) {
-        NSLog(@"Ignore disD");
-        return;
-    }
-    if( [@"disN" isEqualToString:info] ) {
-        NSLog(@"Ignore disN");
-        return;
-    }
+    // Note: disD, disN are discarded by length <= 4
+    // if( [@"disD" isEqualToString:info] ) {
+    //     NSLog(@"Ignore disD");
+    //     return;
+    // }
+    // if( [@"disN" isEqualToString:info] ) {
+    //     NSLog(@"Ignore disN");
+    //     return;
+    // }
     NSArray *strings = [info componentsSeparatedByString:@"\r\n"];
     NSString *header = [strings objectAtIndex:0];
     if( [@"disR" isEqualToString:header] ) {
         NSLog(@"Ignore disR");
         return;
     }
-    NSData *hostdata = packet.address;
-    NSString *host = [UdpSocket hostname:hostdata];
+    NSString *host = [UdpSocket hostname:address];
     int count = strings.count;
     if (count==2) {
-        NSLog(@"got binding");
+        NSLog(@"got binding : %@",strings);
         [self onHost:host binding:header];
         return;
     }
@@ -415,6 +319,38 @@
     }
     // WTF?
     NSLog(@"WTF?");
+
+
+
+
+}
+
+
+#pragma mark -
+#pragma mark UdpSocketTxDelegate
+-(void)udpSocket:(UdpSocket *)socket txError:(int)error
+{
+    NSLog(@"udpsocket txError %d",error);
+}
+
+-(void)udpSocket:(UdpSocket *)socket sentDataWithTag:(NSObject *)tag
+{
+}
+
+#pragma mark -
+#pragma mark UdpSocketRxDelegate
+-(void)udpSocket:(UdpSocket *)socket rxError:(int)error
+{
+    NSLog(@"udpsocket rxError %d",error);
+}
+
+-(void)udpSocket:(UdpSocket *)socket receivedData:(UdpSocketPacket *)packet
+{
+    if( !packet ) {
+        NSLog(@"udpSocketRxData: No data?");
+        return;
+    }
+    [self onRxData:packet.data address:packet.address];
 }
 
 @end
