@@ -36,12 +36,26 @@
 }
 @property (nonatomic,assign) id<UdpSocketTxDelegate> txDelegate;
 @property (nonatomic,assign) id<UdpSocketRxDelegate> rxDelegate;
+#pragma mark -
+#pragma mark The Designated Initialiser
+-(id)init;
+
+#pragma mark -
+#pragma mark Socket configuration
 -(BOOL)enableBroadcast;
 -(BOOL)bindToHost:(NSString *)host port:(UInt16)port;
 -(BOOL)bindToPort:(UInt16)port;
+
+#pragma mark -
+#pragma mark Close the socket
 -(void)close;
 
+#pragma mark -
+#pragma mark Send Data
 -(BOOL)send:(NSData *)data host:(NSString *)host port:(UInt16)port tag:(NSObject *)tag;
 
+#pragma mark -
+#pragma mark Utility Functions
+// get a string reprsenting the hostname from an address blob
 +(NSString *)hostname:(NSData *)address;
 @end
