@@ -335,6 +335,34 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 }
 
 
+static const struct sockaddr_in *dataAsSockAddr4( NSData *data )
+{
+    if( !data )
+        return NULL;
+    if( data.length != sizeof(struct sockaddr_in) )
+        return NULL;
+    const struct sockaddr_in *p = data.bytes;
+    if( p->sin_len != sizeof(struct sockaddr_in) )
+        return NULL;
+    if( p->sin_family != AF_INET )
+        return NULL;
+    return p;
+}
+
+static const struct sockaddr_in6 *dataAsSockAddr6( NSData *data )
+{
+    if( !data )
+        return NULL;
+    if( data.length != sizeof(struct sockaddr_in6) )
+        return NULL;
+    const struct sockaddr_in6 *p = data.bytes;
+    if( p->sin6_len != sizeof(struct sockaddr_in6) )
+        return NULL;
+    if( p->sin6_family != AF_INET6 )
+        return NULL;
+    return p;
+}
+
 // TODO: These for sockaddr_in6
 +(BOOL)data:(NSData *)data toSockaddr:(struct sockaddr_in*)sockaddr
 {
@@ -358,25 +386,40 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 
 +(NSString *)hostname:(NSData *)data
 {
-    struct sockaddr_in addr;
-    if( ![self data:data toSockaddr:&addr] ) {
+    if( !data )
         return nil;
+    const struct sockaddr_in *p4 = dataAsSockAddr4( data );
+    if( p4 ) {
+        char buffer[INET_ADDRSTRLEN];
+        if( !inet_ntop(AF_INET, &p4->sin_addr, buffer, sizeof(buffer) ) ) {
+            NSLog(@"hostname : inet_ntop failed %d",errno);
+            return nil;
+        }
+        return [NSString stringWithCString:buffer encoding:NSASCIIStringEncoding];
     }
-    char buffer[INET_ADDRSTRLEN];
-    if( !inet_ntop(AF_INET, &addr.sin_addr, buffer, sizeof(buffer) ) ) {
-        NSLog(@"hostname : inet_ntop failed %d",errno);
-        return nil;
+    const struct sockaddr_in6 *p6 = dataAsSockAddr6( data );
+    if( p6 ) {
+        char buffer[INET6_ADDRSTRLEN];
+        if( !inet_ntop( AF_INET6, &p6->sin6_addr, buffer, sizeof(buffer) ) ) {
+            NSLog(@"hostname : inet_ntop failed %d",errno);
+            return nil;
+        }
+        return [NSString stringWithCString:buffer encoding:NSASCIIStringEncoding];
     }
-    return [NSString stringWithCString:buffer encoding:NSASCIIStringEncoding];
+    return nil;
 }
 
 +(UInt16)port:(NSData *)data;
 {
-    struct sockaddr_in addr;
-    if( ![self data:data toSockaddr:&addr] ) {
-        return 0;
+    const struct sockaddr_in *p4 = dataAsSockAddr4( data );
+    if( p4 ) {
+        return ntohs(p4->sin_port);
     }
-    return ntohs(addr.sin_port);
+    const struct sockaddr_in6 *p6 = dataAsSockAddr6( data );
+    if( p6 ) {
+        return ntohs(p6->sin6_port);
+    }
+    return 0;
 }
 
 
