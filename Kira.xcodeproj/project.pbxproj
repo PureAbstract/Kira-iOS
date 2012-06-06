@@ -18,6 +18,7 @@
 		E3368E6A13AFD0EE0024085F /* AsyncUdpSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = E3368E6913AFD0EE0024085F /* AsyncUdpSocket.m */; };
 		E336916513AFFCA50024085F /* KiraModuleViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E336916413AFFCA50024085F /* KiraModuleViewController.m */; };
 		E336916E13AFFCF00024085F /* KiraModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E336916D13AFFCF00024085F /* KiraModule.m */; };
+		E3E59C96157EE7DD0054F05D /* UdpSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = E3E59C95157EE7DD0054F05D /* UdpSocket.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,8 @@
 		E336916413AFFCA50024085F /* KiraModuleViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KiraModuleViewController.m; sourceTree = "<group>"; };
 		E336916C13AFFCF00024085F /* KiraModule.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KiraModule.h; sourceTree = "<group>"; };
 		E336916D13AFFCF00024085F /* KiraModule.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KiraModule.m; sourceTree = "<group>"; };
+		E3E59C94157EE7DD0054F05D /* UdpSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UdpSocket.h; sourceTree = "<group>"; };
+		E3E59C95157EE7DD0054F05D /* UdpSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = UdpSocket.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +62,8 @@
 		080E96DDFE201D6D7F000001 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
+				E3E59C94157EE7DD0054F05D /* UdpSocket.h */,
+				E3E59C95157EE7DD0054F05D /* UdpSocket.m */,
 				E336916C13AFFCF00024085F /* KiraModule.h */,
 				E336916D13AFFCF00024085F /* KiraModule.m */,
 				E3368E6813AFD0EE0024085F /* AsyncUdpSocket.h */,
@@ -190,6 +195,7 @@
 				E3368E6A13AFD0EE0024085F /* AsyncUdpSocket.m in Sources */,
 				E336916513AFFCA50024085F /* KiraModuleViewController.m in Sources */,
 				E336916E13AFFCF00024085F /* KiraModule.m in Sources */,
+				E3E59C96157EE7DD0054F05D /* UdpSocket.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
