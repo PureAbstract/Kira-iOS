@@ -9,46 +9,7 @@
 #import "RootViewController.h"
 #import "KiraModule.h"
 #import "KiraModuleViewController.h"
-
-@interface UITableView (UpdateHelper)
-// TODO: Specify animation type
-- (void)reloadRow:(int)row inSection:(int)section;
-- (void)insertRow:(int)row inSection:(int)section;
-
-- (void)reloadRow:(int)row inSection:(int)section withAnimation:(UITableViewRowAnimation)animation;
-- (void)insertRow:(int)row inSection:(int)section withAnimation:(UITableViewRowAnimation)animation;
-@end
-
-@implementation UITableView (UpdateHelper)
-- (void)reloadRow:(int)row inSection:(int)section withAnimation:(UITableViewRowAnimation)animation
-{
-    NSIndexPath *path = [NSIndexPath indexPathForRow:row inSection:section];
-    [self reloadRowsAtIndexPaths:[NSArray arrayWithObject:path]
-                withRowAnimation:animation];
-}
-
-- (void)insertRow:(int)row inSection:(int)section withAnimation:(UITableViewRowAnimation)animation
-{
-    NSIndexPath *path = [NSIndexPath indexPathForRow:row inSection:section];
-    [self insertRowsAtIndexPaths:[NSArray arrayWithObject:path]
-                withRowAnimation:animation];
-}
-
-
-- (void)reloadRow:(int)row inSection:(int)section
-{
-    [self reloadRow:row inSection:section withAnimation:UITableViewRowAnimationFade];
-}
-
-- (void)insertRow:(int)row inSection:(int)section
-{
-    [self insertRow:row inSection:section withAnimation:UITableViewRowAnimationFade];
-}
-
-@end
-
-
-
+#import "UITableView+UpdateHelper.h"
 
 @implementation RootViewController
 

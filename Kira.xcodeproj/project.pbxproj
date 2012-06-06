@@ -18,6 +18,7 @@
 		E336916513AFFCA50024085F /* KiraModuleViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E336916413AFFCA50024085F /* KiraModuleViewController.m */; };
 		E336916E13AFFCF00024085F /* KiraModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E336916D13AFFCF00024085F /* KiraModule.m */; };
 		E3E59C96157EE7DD0054F05D /* UdpSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = E3E59C95157EE7DD0054F05D /* UdpSocket.m */; };
+		E3E5A016157F286B0054F05D /* UITableView+UpdateHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = E3E5A015157F286B0054F05D /* UITableView+UpdateHelper.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,6 +41,8 @@
 		E336916D13AFFCF00024085F /* KiraModule.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KiraModule.m; sourceTree = "<group>"; };
 		E3E59C94157EE7DD0054F05D /* UdpSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UdpSocket.h; sourceTree = "<group>"; };
 		E3E59C95157EE7DD0054F05D /* UdpSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = UdpSocket.m; sourceTree = "<group>"; };
+		E3E5A014157F286B0054F05D /* UITableView+UpdateHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UITableView+UpdateHelper.h"; sourceTree = "<group>"; };
+		E3E5A015157F286B0054F05D /* UITableView+UpdateHelper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "UITableView+UpdateHelper.m"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,6 +72,8 @@
 				1D3623250D0F684500981E51 /* KiraAppDelegate.m */,
 				E336916313AFFCA50024085F /* KiraModuleViewController.h */,
 				E336916413AFFCA50024085F /* KiraModuleViewController.m */,
+				E3E5A014157F286B0054F05D /* UITableView+UpdateHelper.h */,
+				E3E5A015157F286B0054F05D /* UITableView+UpdateHelper.m */,
 			);
 			path = Classes;
 			sourceTree = "<group>";
@@ -190,6 +195,7 @@
 				E336916513AFFCA50024085F /* KiraModuleViewController.m in Sources */,
 				E336916E13AFFCF00024085F /* KiraModule.m in Sources */,
 				E3E59C96157EE7DD0054F05D /* UdpSocket.m in Sources */,
+				E3E5A016157F286B0054F05D /* UITableView+UpdateHelper.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
