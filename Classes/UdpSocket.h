@@ -58,4 +58,5 @@
 #pragma mark Utility Functions
 // get a string reprsenting the hostname from an address blob
 +(NSString *)hostname:(NSData *)address;
++(UInt16)port:(NSData *)address;
 @end

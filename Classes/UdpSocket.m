@@ -335,14 +335,33 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 }
 
 
+// TODO: These for sockaddr_in6
++(BOOL)data:(NSData *)data toSockaddr:(struct sockaddr_in*)sockaddr
+{
+    NSAssert( sockaddr, @"NULL sockaddr" );
+    if( !sockaddr ) {
+        NSLog(@"data->toSockaddr : NULL buffer" );
+        return NO;
+    }
+    bzero( sockaddr, sizeof(*sockaddr) );
+    if( data.length != sizeof(*sockaddr) ) {
+        NSLog(@"data->toSockaddr : bad size");
+        return NO;
+    }
+    [data getBytes:sockaddr length:sizeof(*sockaddr)];
+    if( sockaddr->sin_family != AF_INET ) {
+        NSLog(@"data->toSockaddr : Bad family");
+        return NO;
+    }
+    return YES;
+}
+
 +(NSString *)hostname:(NSData *)data
 {
     struct sockaddr_in addr;
-    if( data.length != sizeof(addr) ) {
-        NSLog(@"hostname : bad size");
+    if( ![self data:data toSockaddr:&addr] ) {
         return nil;
     }
-    [data getBytes:&addr length:sizeof(addr)];
     char buffer[INET_ADDRSTRLEN];
     if( !inet_ntop(AF_INET, &addr.sin_addr, buffer, sizeof(buffer) ) ) {
         NSLog(@"hostname : inet_ntop failed %d",errno);
@@ -350,6 +369,16 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
     }
     return [NSString stringWithCString:buffer encoding:NSASCIIStringEncoding];
 }
+
++(UInt16)port:(NSData *)data;
+{
+    struct sockaddr_in addr;
+    if( ![self data:data toSockaddr:&addr] ) {
+        return 0;
+    }
+    return ntohs(addr.sin_port);
+}
+
 
 #pragma mark -
 #pragma mark Callback Method
