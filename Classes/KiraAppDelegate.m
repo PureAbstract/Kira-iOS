@@ -7,16 +7,7 @@
 //
 
 #import "KiraAppDelegate.h"
-#import "RootViewController.h"
-#import <CoreFoundation/CoreFoundation.h>
-#import <CoreFoundation/CFSocket.h>
 #import <Foundation/Foundation.h>
-#import <CFNetwork/CFNetwork.h>
-#import <sys/socket.h>
-
-#ifndef IPPROTO_UDP
-#define IPPROTO_UDP (17)
-#endif
 
 @implementation KiraAppDelegate
 

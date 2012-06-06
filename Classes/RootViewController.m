@@ -280,10 +280,6 @@
     }
     // WTF?
     NSLog(@"WTF?");
-
-
-
-
 }
 
 
@@ -296,6 +292,7 @@
 
 -(void)udpSocket:(UdpSocket *)socket sentDataWithTag:(NSObject *)tag
 {
+    // Nothing to see here...
 }
 
 #pragma mark -
