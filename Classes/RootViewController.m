@@ -42,11 +42,15 @@
     if( !address )
         address = @"255.255.255.255";
     NSData *packet = [NSData dataWithBytes:bytes length:length];
-    [_udpSocket sendData:packet
-                  toHost:address
-                    port:port
-             withTimeout:10.0
-                     tag:0];
+    // [_udpSocket sendData:packet
+    //               toHost:address
+    //                 port:port
+    //          withTimeout:10.0
+    //                  tag:0];
+    [_socket send:packet
+             host:address
+             port:port
+              tag:nil];
 }
 
 
@@ -80,12 +84,17 @@
     self.navigationItem.leftBarButtonItem = refresh;
     [refresh release];
 
-    _udpSocket = [[AsyncUdpSocket alloc] initIPv4];
-    [_udpSocket setDelegate:self];
+    //_udpSocket = [[AsyncUdpSocket alloc] initIPv4];
+    //[_udpSocket setDelegate:self];
+    _socket = [[UdpSocket alloc] init];
+    _socket.txDelegate = self;
+    _socket.rxDelegate = self;
     NSError *err = NULL;
-    [_udpSocket bindToPort:30303 error:&err];
-    [_udpSocket enableBroadcast:TRUE error:&err];
-    [_udpSocket receiveWithTimeout:-1 tag:0];
+    [_socket bindToPort:30303];
+    // [_udpSocket bindToPort:30303 error:&err];
+    [_socket enableBroadcast];
+    //[_udpSocket enableBroadcast:TRUE error:&err];
+    //[_udpSocket receiveWithTimeout:-1 tag:0];
     [self onCmdRefresh];
 }
 
@@ -224,7 +233,7 @@
 
 
 - (void)dealloc {
-    [_udpSocket release];
+    [_socket release];
     [_modules release];
     [super dealloc];
 }
@@ -346,5 +355,67 @@
     NSLog(@"WTF?");
     return NO;
 }
+
+#pragma mark -
+#pragma mark UdpSocketTxDelegate
+-(void)udpSocket:(UdpSocket *)socket txError:(int)error
+{
+    NSLog(@"udpsocket txError %d",error);
+}
+
+-(void)udpSocketTxData:(UdpSocket *)socket
+{
+}
+
+#pragma mark -
+#pragma mark UdpSocketRxDelegate
+-(void)udpSocket:(UdpSocket *)socket rxError:(int)error
+{
+    NSLog(@"udpsocket rxError %d",error);
+}
+
+-(void)udpSocketRxData:(UdpSocket *)socket
+{
+    UdpSocketPacket *packet = [socket popRxQueue];
+    if( !packet ) {
+        return;
+    }
+    NSData *data = packet.data;
+    NSLog(@"Rx %d",data.length);
+    if( data.length <= 4 ) {
+        return;
+    }
+    NSString *info = [[[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding] autorelease];
+    if( [@"disD" isEqualToString:info] ) {
+        NSLog(@"Ignore disD");
+        return;
+    }
+    if( [@"disN" isEqualToString:info] ) {
+        NSLog(@"Ignore disN");
+        return;
+    }
+    NSArray *strings = [info componentsSeparatedByString:@"\r\n"];
+    NSString *header = [strings objectAtIndex:0];
+    if( [@"disR" isEqualToString:header] ) {
+        NSLog(@"Ignore disR");
+        return;
+    }
+    NSData *hostdata = packet.address;
+    NSString *host = [UdpSocket hostname:hostdata];
+    int count = strings.count;
+    if (count==2) {
+        NSLog(@"got binding");
+        [self onHost:host binding:header];
+        return;
+    }
+    if (count>3) {
+        NSLog(@"got host");
+        [self onHost:host discovery:strings];
+        return;
+    }
+    // WTF?
+    NSLog(@"WTF?");
+}
+
 @end
 

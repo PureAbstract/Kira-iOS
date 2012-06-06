@@ -32,7 +32,6 @@
     NSMutableArray *sendBuf_;
     id<UdpSocketTxDelegate> txDelegate_;
     id<UdpSocketRxDelegate> rxDelegate_;
-    BOOL _writeable;
 }
 @property (nonatomic,assign) id<UdpSocketTxDelegate> txDelegate;
 @property (nonatomic,assign) id<UdpSocketRxDelegate> rxDelegate;
@@ -47,4 +46,5 @@
 -(UdpSocketPacket *)peekRxQueue;
 -(UdpSocketPacket *)popRxQueue;
 
++(NSString *)hostname:(NSData *)address;
 @end

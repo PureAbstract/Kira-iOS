@@ -3,6 +3,13 @@
 #import <sys/socket.h>
 #import <netinet/in.h>
 #import <netdb.h>
+#import <arpa/inet.h>
+
+//#import <sys/ioctl.h>
+#import <net/if.h>
+
+
+
 #import <CFNetwork/CFNetwork.h>
 
 
@@ -203,10 +210,29 @@ static void theCFSocketCallback( CFSocketRef socket,
     }
 }
 
+-(BOOL)canWrite:(CFSocketRef)socket
+{
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(CFSocketGetNative(socket), &fds);
+	
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+	
+    return select(FD_SETSIZE, NULL, &fds, NULL, &timeout) > 0;
+}
+
 -(void)forceWrite:(CFSocketRef)socket
 {
-    NSAssert( sendBuf_.count > 0, @"forceWrite with empty buffer" );
-    NSAssert( _writeable, @"Not writeable" );
+    if( sendBuf_.count < 1 ) {
+        NSLog(@"forceWrite: Send buffer empty");
+        return;
+    }
+    if( ![self canWrite:socket] ) {
+        NSLog(@"forceWrite: Socket not writeable");
+        return;
+    }
     UdpSocketPacket *packet = [[sendBuf_ objectAtIndex:0] retain];
     [sendBuf_ removeObjectAtIndex:0];
     // write the packet
@@ -216,8 +242,8 @@ static void theCFSocketCallback( CFSocketRef socket,
                        0,
                        packet.address.bytes,
                        packet.address.length );
-    _writeable = NO;
     if( sent == packet.data.length ) {
+        // TODO: Can we schedule this to run later?
         if( txDelegate_ && [rxDelegate_ respondsToSelector:@selector(udpSocketTxData:)] ) {
             [txDelegate_ udpSocketTxData:self];
         }
@@ -228,26 +254,23 @@ static void theCFSocketCallback( CFSocketRef socket,
     [packet release];
 }
 
+
 -(void)onWrite:(CFSocketRef)socket
 {
-    _writeable = YES;
-    if( sendBuf_.count > 0 ) {
-        [self forceWrite:socket];
-    }
+    [self forceWrite:socket];
 }
 
 -(BOOL)send:(NSData *)data host:(NSString *)host port:(UInt16)port tag:(NSObject *)tag;
 {
     NSData *hostAddr = getHostAddress( host, port );
     if( !hostAddr ) {
+        NSLog(@"%@:send - bad address",[self class]);
         return NO;
     }
     UdpSocketPacket *packet = [[UdpSocketPacket alloc] initWithData:data address:hostAddr tag:tag];
     [sendBuf_ addObject:packet];
-    if( _writeable ) {
-        [self forceWrite:socket_];
-    }
     [packet release];
+    [self forceWrite:socket_];
     return YES;
 }
 
@@ -266,6 +289,7 @@ static void theCFSocketCallback( CFSocketRef socket,
                            (struct sockaddr *)&addr,
                            &len );
     if( result < 0 ) {
+        NSLog(@"Receive failed %d",result);
         free(buf);
         [self delegateRxError:result]; // FIXME
         return;
@@ -321,6 +345,21 @@ static void theCFSocketCallback( CFSocketRef socket,
     return nil;
 }
 
++(NSString *)hostname:(NSData *)data
+{
+    struct sockaddr_in addr;
+    if( data.length != sizeof(addr) ) {
+        NSLog(@"hostname : bad size");
+        return nil;
+    }
+    [data getBytes:&addr length:sizeof(addr)];
+    char addrBuf[INET_ADDRSTRLEN];
+    if( !inet_ntop(AF_INET, &addr.sin_addr, addrBuf, sizeof(addrBuf) ) ) {
+        NSLog(@"hostname : inet_ntop failed");
+        return nil;
+    }
+    return [NSString stringWithCString:addrBuf encoding:NSASCIIStringEncoding];
+}
 
 @end
 
