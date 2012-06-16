@@ -14,6 +14,8 @@
 
 @implementation RootViewController
 
+#pragma mark -
+#pragma mark Data transmission
 - (void)sendPacket:(const void *)bytes length:(int)length to:(NSString *)address port:(int)port
 {
     if( !address )
@@ -33,7 +35,6 @@
 
 #pragma mark -
 #pragma mark View lifecycle
-
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -56,36 +57,16 @@
     [self onCmdRefresh];
 }
 
-/*
-- (void)viewWillAppear:(BOOL)animated {
-    [super viewWillAppear:animated];
-}
-*/
-/*
-- (void)viewDidAppear:(BOOL)animated {
-    [super viewDidAppear:animated];
-}
-*/
-/*
-- (void)viewWillDisappear:(BOOL)animated {
-    [super viewWillDisappear:animated];
-}
-*/
-/*
-- (void)viewDidDisappear:(BOOL)animated {
-    [super viewDidDisappear:animated];
-}
-*/
-
-/*
  // Override to allow orientations other than the default portrait orientation.
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation {
     // Return YES for supported orientations.
-    return (interfaceOrientation == UIInterfaceOrientationPortrait);
+    return YES;
 }
- */
 
 
+#pragma mark -
+#pragma mark Internal : Data access
+// Find the module at the specified index path
 -(KiraModule *)moduleForIndexPath:(NSIndexPath *)path
 {
     if( path.section != 0 ) {
@@ -108,14 +89,17 @@
 
 // Customize the number of rows in the table view.
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    int n = _modules.count;
-    return n;
+    if( 0 == section ) {
+        return _modules.count;
+    }
+    return 0;
 }
 
 
 // Customize the appearance of table view cells.
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
 
+    NSAssert( 0 == indexPath.section, @"Invalid section" );
     static NSString *CellIdentifier = @"Cell";
 
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:CellIdentifier];
@@ -177,6 +161,7 @@
 #pragma mark Handle various socket messages
 - (int)findModuleIndex:(NSString *)host
 {
+    // TODO: Maybe ought to hold these in a dictionary...
     for (int i = 0; i < _modules.count; ++i) {
         KiraModule *module = [_modules objectAtIndex:i];
         if ([module.address isEqualToString:host]) {
@@ -186,6 +171,7 @@
     return -1;
 }
 
+// Got discovery response from a module
 - (void)onHost:(NSString *)host discovery:(NSArray *)strings
 {
     // host probably == objectAtIndex:1
@@ -202,7 +188,7 @@
     [self sendPacket:"disN" length:4 to:host port:30303];
 }
 
-
+// Got a binding message from a module
 - (void)onHost:(NSString *)host binding:(NSString *)binding
 {
     // Command binding for host.
@@ -221,6 +207,7 @@
 
 #pragma mark -
 #pragma mark Handle Network packet
+// Received a packet
 -(void)onRxData:(NSData *)data address:(NSData *)address
 {
     if( data.length <= 4 ) {

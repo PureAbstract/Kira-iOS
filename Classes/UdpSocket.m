@@ -243,36 +243,34 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 
 -(void)tryWrite:(CFSocketRef)socket
 {
-    if( sendQueue_.count < 1 ) {
-        [self logWarning:@"tryWrite: Send buffer empty"];
-        return;
-    }
-    if( ![self canWrite:socket] ) {
-        [self logWarning:@"tryWrite: Socket not writeable"];
-        return;
-    }
-    // Pop a packet from the queue...
-    UdpSocketPacket *packet = [[sendQueue_ objectAtIndex:0] retain];
-    [sendQueue_ removeObjectAtIndex:0];
-    // write it
-    int sent = sendto( CFSocketGetNative(socket),
-                       packet.data.bytes,
-                       packet.data.length,
-                       0,
-                       packet.address.bytes,
-                       packet.address.length );
-    // See what happened
-    if( sent == packet.data.length ) {
-        if( txDelegate_ ) {
-            [txDelegate_ udpSocket:self
-                   sentDataWithTag:packet.tag];
+    while( sendQueue_.count > 0 ) {
+        if( ![self canWrite:socket] ) {
+            [self logWarning:@"tryWrite: Socket not writeable"];
+            return;
         }
-    } else {
-        // This is bad...
-        [self logError:@"tryWrite: Send %d of %d",sent,packet.data.length];
-        [self delegateTxError:errno]; // FIXME
+        // Pop a packet from the queue...
+        UdpSocketPacket *packet = [[sendQueue_ objectAtIndex:0] retain];
+        [sendQueue_ removeObjectAtIndex:0];
+        // write it
+        int sent = sendto( CFSocketGetNative(socket),
+                           packet.data.bytes,
+                           packet.data.length,
+                           0,
+                           packet.address.bytes,
+                           packet.address.length );
+        // See what happened
+        if( sent == packet.data.length ) {
+            if( txDelegate_ ) {
+                [txDelegate_ udpSocket:self
+                       sentDataWithTag:packet.tag];
+            }
+        } else {
+            // This is bad...
+            [self logError:@"tryWrite: Send %d of %d",sent,packet.data.length];
+            [self delegateTxError:errno]; // FIXME
+        }
+        [packet release];
     }
-    [packet release];
 }
 
 
@@ -300,61 +298,61 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 // Called from the callback
 -(void)onRead:(CFSocketRef)socket
 {
-    if( ![self canRead:socket] ) {
-        [self logWarning:@"onRead: Socket not readable"];
-        return;
-    }
-    // Recieve the packet...
-    size_t size = 32768;        // Magic number
-    void *buf = malloc( size );
-    if( !buf ) {
-        // This is bad...
-        [self delegateRxError:ENOMEM];
-        return;
-    }
-    struct sockaddr_in addr;
-    bzero( &addr, sizeof(addr) );
-    socklen_t len = sizeof(addr);
-    int result = recvfrom( CFSocketGetNative(socket),
-                           buf,
-                           size,
-                           0,
-                           (struct sockaddr *)&addr,
-                           &len );
-    if( result < 0 ) {
-        [self logError:@"Receive failed %d : %d",result,errno];
-        free(buf);
-        [self delegateRxError:errno];
-        return;
-    }
-
-    if( result < size ) {
-        // Try and shrink the buffer
-        // Note that realloc(0) is often equivalent to free. We don't want that...
-        void *p = realloc( buf, ( result > 0 ) ? result : 1 );
-        if( p ) {
-            buf = p;
-        } else {
-            // realloc failed; just use buf as-is.
+    while( [self canRead:socket] ) {
+        // Recieve the packet...
+        size_t size = 32768;        // Magic number
+        void *buf = malloc( size );
+        if( !buf ) {
+            // This is bad...
+            [self delegateRxError:ENOMEM];
+            return;
         }
-    }
+        struct sockaddr_in addr;
+        bzero( &addr, sizeof(addr) );
+        socklen_t len = sizeof(addr);
+        int result = recvfrom( CFSocketGetNative(socket),
+                               buf,
+                               size,
+                               0,
+                               (struct sockaddr *)&addr,
+                               &len );
+        if( result < 0 ) {
+            [self logError:@"Receive failed %d : %d",result,errno];
+            free(buf);
+            [self delegateRxError:errno];
+            return;
+        }
 
-    NSData *data = [[NSData alloc] initWithBytesNoCopy:buf
-                                                length:result
-                                          freeWhenDone:YES];
-    UdpSocketPacket *packet = [[UdpSocketPacket alloc] initWithData:data
-                                                            address:[NSData dataWithBytes:&addr length:len]
-                                                                tag:nil];
+        if( result < size ) {
+            // Try and shrink the buffer
+            // Note that realloc(0) is often equivalent to free. We don't want that...
+            void *p = realloc( buf, ( result > 0 ) ? result : 1 );
+            if( p ) {
+                buf = p;
+            } else {
+                // realloc failed; just use buf as-is.
+            }
+        }
 
-    [data release];
-    if( rxDelegate_ ) {
-        [rxDelegate_ udpSocket:self
-                  receivedData:packet];
-    } else {
-        // Just discard it
-        [self logWarning:@"Discarding packet"];
+        NSData *data = [[NSData alloc] initWithBytesNoCopy:buf
+                                                    length:result
+                                              freeWhenDone:YES];
+        UdpSocketPacket *packet = [[UdpSocketPacket alloc] initWithData:data
+                                                                address:[NSData dataWithBytes:&addr length:len]
+                                                                    tag:nil];
+
+        [data release];
+        if( rxDelegate_ ) {
+            // TODO: Queue received packets, and then fire this
+            // later...
+            [rxDelegate_ udpSocket:self
+                      receivedData:packet];
+        } else {
+            // Just discard it
+            [self logWarning:@"Discarding packet"];
+        }
+        [packet release];
     }
-    [packet release];
 }
 
 
