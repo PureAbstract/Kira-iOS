@@ -322,7 +322,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
             [self delegateRxError:errno];
             return;
         }
-
+#if 0
         if( result < size ) {
             // Try and shrink the buffer
             // Note that realloc(0) is often equivalent to free. We don't want that...
@@ -333,25 +333,25 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
                 // realloc failed; just use buf as-is.
             }
         }
-
-        NSData *data = [[NSData alloc] initWithBytesNoCopy:buf
-                                                    length:result
-                                              freeWhenDone:YES];
-        UdpSocketPacket *packet = [[UdpSocketPacket alloc] initWithData:data
-                                                                address:[NSData dataWithBytes:&addr length:len]
-                                                                    tag:nil];
-
-        [data release];
+#endif
         if( rxDelegate_ ) {
+
+            NSData *data = [[NSData alloc] initWithBytesNoCopy:buf
+                                                        length:result
+                                                  freeWhenDone:YES];
+            UdpSocketPacket *packet = [[UdpSocketPacket alloc] initWithData:data
+                                                                    address:[NSData dataWithBytes:&addr length:len]
+                                                                        tag:nil];
+            [data release];
             // TODO: Queue received packets, and then fire this
             // later...
             [rxDelegate_ udpSocket:self
                       receivedData:packet];
+            [packet release];
         } else {
             // Just discard it
             [self logWarning:@"Discarding packet"];
         }
-        [packet release];
     }
 }
 
