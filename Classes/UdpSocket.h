@@ -33,6 +33,7 @@
     CFRunLoopSourceRef sourceRef_;
     CFRunLoopRef runLoop_;
     NSMutableArray *sendQueue_;
+    NSMutableArray *recvQueue_;
     id<UdpSocketTxDelegate> txDelegate_;
     id<UdpSocketRxDelegate> rxDelegate_;
 }

@@ -49,7 +49,7 @@ static NSData *getHostAddress( NSString *host, UInt16 port ) {
     struct addrinfo *results = 0;
     int error = getaddrinfo( [host UTF8String], [sPort UTF8String], &hint, &results );
     if( error ) {
-        [[Logger logger] log:@"getaddrinfo [%@:%@] failed: %d - %s",
+        [[Logger logger] logError:@"getaddrinfo [%@:%@] failed: %d - %s",
                          host,
                          sPort,
                          error,
@@ -63,7 +63,7 @@ static NSData *getHostAddress( NSString *host, UInt16 port ) {
     }
     freeaddrinfo( results );
     if( !rv ) {
-        [[Logger logger] log:@"getHostAddress(%@,%@) - failed?",host,sPort];
+        [[Logger logger] logError:@"getHostAddress(%@,%@) - failed?",host,sPort];
     }
 
     return rv;
@@ -121,6 +121,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 -(void)dealloc {
     [self close];
     [sendQueue_ release];
+    [recvQueue_ release];
     [super dealloc];
 }
 
@@ -148,6 +149,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
         sourceRef_ = CFSocketCreateRunLoopSource( kCFAllocatorDefault, socket_, 0 );
         CFRunLoopAddSource( runLoop_, sourceRef_, (CFStringRef)NSDefaultRunLoopMode );
         sendQueue_ = [NSMutableArray new];
+        recvQueue_ = [NSMutableArray new];
     }
     return self;
 }
@@ -165,6 +167,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
         socket_ = NULL;
     }
     [sendQueue_ removeAllObjects];
+    [recvQueue_ removeAllObjects];
     runLoop_ = NULL;
 }
 
@@ -172,7 +175,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 {
     NSData *addr = getHostAddress( host, port );
     if( !addr ) {
-        [self log:@"bindToHost:port - getHostAddress failed"];
+        [self logError:@"bindToHost:port - getHostAddress failed"];
         return NO;
     }
     // enable reuseaddr
@@ -181,7 +184,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
     // bind
     CFSocketError err = CFSocketSetAddress( socket_, (CFDataRef)addr );
     if( err != kCFSocketSuccess ) {
-        [self log:@"bindToHost:port - CFSocketSetAddress failed %d",err];
+        [self logError:@"bindToHost:port - CFSocketSetAddress failed %d",err];
         return NO;
     }
     return YES;
@@ -241,11 +244,11 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 -(void)tryWrite:(CFSocketRef)socket
 {
     if( sendQueue_.count < 1 ) {
-        [self log:@"tryWrite: Send buffer empty"];
+        [self logWarning:@"tryWrite: Send buffer empty"];
         return;
     }
     if( ![self canWrite:socket] ) {
-        [self log:@"tryWrite: Socket not writeable"];
+        [self logWarning:@"tryWrite: Socket not writeable"];
         return;
     }
     // Pop a packet from the queue...
@@ -266,7 +269,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
         }
     } else {
         // This is bad...
-        [self log:@"tryWrite: Send %d of %d",sent,packet.data.length];
+        [self logError:@"tryWrite: Send %d of %d",sent,packet.data.length];
         [self delegateTxError:errno]; // FIXME
     }
     [packet release];
@@ -283,7 +286,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 {
     NSData *hostAddr = getHostAddress( host, port );
     if( !hostAddr ) {
-        [self log:@"%@:send - bad address",[self class]];
+        [self logError:@"%@:send - bad address",[self class]];
         return NO;
     }
     UdpSocketPacket *packet = [[UdpSocketPacket alloc] initWithData:data address:hostAddr tag:tag];
@@ -298,7 +301,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 -(void)onRead:(CFSocketRef)socket
 {
     if( ![self canRead:socket] ) {
-        [self log:@"onRead: Socket not readable"];
+        [self logWarning:@"onRead: Socket not readable"];
         return;
     }
     // Recieve the packet...
@@ -319,7 +322,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
                            (struct sockaddr *)&addr,
                            &len );
     if( result < 0 ) {
-        [self log:@"Receive failed %d : %d",result,errno];
+        [self logError:@"Receive failed %d : %d",result,errno];
         free(buf);
         [self delegateRxError:errno];
         return;
@@ -349,7 +352,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
                   receivedData:packet];
     } else {
         // Just discard it
-        [self log:@"Discarding packet"];
+        [self logWarning:@"Discarding packet"];
     }
     [packet release];
 }
@@ -388,17 +391,17 @@ static const struct sockaddr_in6 *dataAsSockAddr6( NSData *data )
 {
     if( !sockaddr ) {
         NSAssert( sockaddr, @"NULL sockaddr" );
-        [self log:@"data->toSockaddr : NULL buffer"];
+        [self logError:@"data->toSockaddr : NULL buffer"];
         return NO;
     }
     bzero( sockaddr, sizeof(*sockaddr) );
     if( data.length != sizeof(*sockaddr) ) {
-        [self log:@"data->toSockaddr : bad size"];
+        [self logError:@"data->toSockaddr : bad size"];
         return NO;
     }
     [data getBytes:sockaddr length:sizeof(*sockaddr)];
     if( sockaddr->sin_family != AF_INET ) {
-        [self log:@"data->toSockaddr : Bad family"];
+        [self logError:@"data->toSockaddr : Bad family"];
         return NO;
     }
     return YES;
@@ -412,7 +415,7 @@ static const struct sockaddr_in6 *dataAsSockAddr6( NSData *data )
     if( p4 ) {
         char buffer[INET_ADDRSTRLEN];
         if( !inet_ntop(AF_INET, &p4->sin_addr, buffer, sizeof(buffer) ) ) {
-            [self log:@"hostname : inet_ntop failed %d",errno];
+            [self logError:@"hostname : inet_ntop failed %d",errno];
             return nil;
         }
         return [NSString stringWithCString:buffer encoding:NSASCIIStringEncoding];
@@ -421,7 +424,7 @@ static const struct sockaddr_in6 *dataAsSockAddr6( NSData *data )
     if( p6 ) {
         char buffer[INET6_ADDRSTRLEN];
         if( !inet_ntop( AF_INET6, &p6->sin6_addr, buffer, sizeof(buffer) ) ) {
-            [self log:@"hostname : inet_ntop failed %d",errno];
+            [self logError:@"hostname : inet_ntop failed %d",errno];
             return nil;
         }
         return [NSString stringWithCString:buffer encoding:NSASCIIStringEncoding];
@@ -464,7 +467,7 @@ static const struct sockaddr_in6 *dataAsSockAddr6( NSData *data )
         case kCFSocketDataCallBack:
         case kCFSocketConnectCallBack:
         default:
-            [self log:@"Unexpected socket callback 0x%02x",type];
+            [self logWarning:@"Unexpected socket callback 0x%02x",type];
             break;
         }
 }

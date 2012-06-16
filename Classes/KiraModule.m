@@ -45,7 +45,7 @@
     NSString *index = [binding substringToIndex:2];
     NSAssert(index.length==2,@"Bad index");
     NSString *mapping = [binding substringFromIndex:3];
-    [self log:@"[%@][%@]",index,mapping];
+    [self logInfo:@"[%@][%@]",index,mapping];
     [_bindings setObject:mapping forKey:index];
 }
 @end

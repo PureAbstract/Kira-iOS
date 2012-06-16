@@ -86,6 +86,17 @@
  */
 
 
+-(KiraModule *)moduleForIndexPath:(NSIndexPath *)path
+{
+    if( path.section != 0 ) {
+        return nil;
+    }
+    if( _modules.count > path.row ) {
+        return [_modules objectAtIndex:path.row];
+    }
+    return nil;
+}
+
 #pragma mark -
 #pragma mark Table view data source
 
@@ -112,10 +123,21 @@
         cell = [[[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:CellIdentifier] autorelease];
     }
     // Configure the cell.
-    KiraModule *module = [_modules objectAtIndex:indexPath.row];
-    cell.textLabel.text = module.name;
-    cell.textLabel.textColor = [UIColor blackColor];
-    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@:%@ (%d)",module.address,module.port,module.bindings.count];
+    KiraModule *module = [self moduleForIndexPath:indexPath];
+    if( module ) {
+        cell.textLabel.text = module.name;
+        cell.textLabel.textColor = [UIColor blackColor];
+        cell.detailTextLabel.text = [NSString stringWithFormat:@"%@:%@ (%d)",module.address,module.port,module.bindings.count];
+        cell.accessoryType = ( module.bindings.count > 0 )
+            ? UITableViewCellAccessoryDisclosureIndicator
+            : UITableViewCellAccessoryNone
+            ;
+    } else {
+        cell.textLabel.text = [NSString stringWithFormat:@"Bad index path %@",indexPath];
+        cell.textLabel.textColor = [UIColor redColor];
+        cell.detailTextLabel.text = nil;
+        cell.accessoryType = UITableViewCellAccessoryNone;
+    }
     return cell;
 }
 
@@ -164,14 +186,13 @@
 #pragma mark Table view delegate
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    if( _modules.count > 0 ) {
-        KiraModule *module = [_modules objectAtIndex:indexPath.row];
+    KiraModule *module = [self moduleForIndexPath:indexPath];
+    if( module ) {
         KiraModuleViewController *controller = [KiraModuleViewController viewControllerForModule:module];
         [self.navigationController pushViewController:controller animated:YES];
     }
     [self.tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
-
 
 #pragma mark -
 #pragma mark Memory management
@@ -230,10 +251,10 @@
 - (void)onHost:(NSString *)host binding:(NSString *)binding
 {
     // Command binding for host.
-    [self log:@"Command [%@]:[%@]",host,binding];
+    [self logInfo:@"Command [%@]:[%@]",host,binding];
     int i = [self findModuleIndex:host];
     if (i < 0) {
-        [self log:@"Unknown host %@",host];
+        [self logWarning:@"Unknown host %@",host];
         return;
     }
     KiraModule *module = [_modules objectAtIndex:i];
@@ -248,39 +269,39 @@
 -(void)onRxData:(NSData *)data address:(NSData *)address
 {
     if( data.length <= 4 ) {
-        [self log:@"Rx : Too short %d",data.length];
+        [self logWarning:@"Rx : Too short %d",data.length];
         return;
     }
     NSString *info = [[[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding] autorelease];
     // Note: disD, disN are discarded by length <= 4
     // if( [@"disD" isEqualToString:info] ) {
-    //     [self log:@"Ignore disD"];
+    //     [self logInfo:@"Ignore disD"];
     //     return;
     // }
     // if( [@"disN" isEqualToString:info] ) {
-    //     [self log:@"Ignore disN"];
+    //     [self logInfo:@"Ignore disN"];
     //     return;
     // }
     NSArray *strings = [info componentsSeparatedByString:@"\r\n"];
     NSString *header = [strings objectAtIndex:0];
     if( [@"disR" isEqualToString:header] ) {
-        [self log:@"Ignore disR"];
+        [self logInfo:@"Ignore disR"];
         return;
     }
     NSString *host = [UdpSocket hostname:address];
     int count = strings.count;
     if (count==2) {
-        [self log:@"got binding : %@",strings];
+        [self logInfo:@"got binding : %@",strings];
         [self onHost:host binding:header];
         return;
     }
     if (count>3) {
-        [self log:@"got host"];
+        [self logInfo:@"got host"];
         [self onHost:host discovery:strings];
         return;
     }
     // WTF?
-    [self log:@"WTF?@"];
+    [self logWarning:@"WTF?@"];
 }
 
 
@@ -288,7 +309,7 @@
 #pragma mark UdpSocketTxDelegate
 -(void)udpSocket:(UdpSocket *)socket txError:(int)error
 {
-    [self log:@"udpsocket txError %d",error];
+    [self logError:@"udpsocket txError %d",error];
 }
 
 -(void)udpSocket:(UdpSocket *)socket sentDataWithTag:(NSObject *)tag
@@ -300,7 +321,7 @@
 #pragma mark UdpSocketRxDelegate
 -(void)udpSocket:(UdpSocket *)socket rxError:(int)error
 {
-    [self log:@"udpsocket rxError %d",error];
+    [self logError:@"udpsocket rxError %d",error];
 }
 
 -(void)udpSocket:(UdpSocket *)socket receivedData:(UdpSocketPacket *)packet
@@ -308,7 +329,7 @@
     if( packet ) {
         [self onRxData:packet.data address:packet.address];
     } else {
-        [self log:@"udpSocketRxData: No data?"];
+        [self logWarning:@"udpSocketRxData: No data?"];
     }
 }
 

@@ -6,6 +6,12 @@
 @end
 
 @interface NSObject (Logging)
--(void)logWithFormat:(NSString *)format arguments:(va_list)args NS_FORMAT_FUNCTION(1,0);
--(void)log:(NSString *)format, ... NS_FORMAT_FUNCTION(1,2);
+-(void)logInfo:(NSString *)format, ... NS_FORMAT_FUNCTION(1,2);
+-(void)logInfo:(NSString *)format arguments:(va_list)arguments NS_FORMAT_FUNCTION(1,0);
+
+-(void)logWarning:(NSString *)format, ... NS_FORMAT_FUNCTION(1,2);
+-(void)logWarning:(NSString *)format arguments:(va_list)arguments NS_FORMAT_FUNCTION(1,0);
+
+-(void)logError:(NSString *)format, ... NS_FORMAT_FUNCTION(1,2);
+-(void)logError:(NSString *)format arguments:(va_list)arguments NS_FORMAT_FUNCTION(1,0);
 @end
