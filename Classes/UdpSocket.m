@@ -204,13 +204,13 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 
 -(void)delegateRxError:(int)error
 {
-    if( rxDelegate_ && [rxDelegate_ respondsToSelector:@selector(udpSocket:rxError:)] ) {
+    if( rxDelegate_ ) {
         [rxDelegate_ udpSocket:self rxError:error];
     }
 }
 -(void)delegateTxError:(int)error
 {
-    if( txDelegate_ && [txDelegate_ respondsToSelector:@selector(udpSocket:txError:)] ) {
+    if( txDelegate_ ) {
         [txDelegate_ udpSocket:self txError:error];
     }
 }
@@ -263,7 +263,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
                        packet.address.length );
     // See what happened
     if( sent == packet.data.length ) {
-        if( txDelegate_ && [txDelegate_ respondsToSelector:@selector(udpSocket:sentDataWithTag:)] ) {
+        if( txDelegate_ ) {
             [txDelegate_ udpSocket:self
                    sentDataWithTag:packet.tag];
         }
@@ -347,7 +347,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
                                                                 tag:nil];
 
     [data release];
-    if( rxDelegate_ && [rxDelegate_ respondsToSelector:@selector(udpSocket:receivedData:)] ) {
+    if( rxDelegate_ ) {
         [rxDelegate_ udpSocket:self
                   receivedData:packet];
     } else {
