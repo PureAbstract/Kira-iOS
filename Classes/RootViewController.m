@@ -10,6 +10,7 @@
 #import "KiraModule.h"
 #import "KiraModuleViewController.h"
 #import "UITableView+UpdateHelper.h"
+#import "Logging.h"
 
 @implementation RootViewController
 
@@ -229,10 +230,10 @@
 - (void)onHost:(NSString *)host binding:(NSString *)binding
 {
     // Command binding for host.
-    NSLog(@"Command [%@]:[%@]",host,binding);
+    [self log:@"Command [%@]:[%@]",host,binding];
     int i = [self findModuleIndex:host];
     if (i < 0) {
-        NSLog(@"Unknown host %@",host);
+        [self log:@"Unknown host %@",host];
         return;
     }
     KiraModule *module = [_modules objectAtIndex:i];
@@ -247,39 +248,39 @@
 -(void)onRxData:(NSData *)data address:(NSData *)address
 {
     if( data.length <= 4 ) {
-        NSLog(@"Rx : Too short %d",data.length);
+        [self log:@"Rx : Too short %d",data.length];
         return;
     }
     NSString *info = [[[NSString alloc] initWithData:data encoding:NSASCIIStringEncoding] autorelease];
     // Note: disD, disN are discarded by length <= 4
     // if( [@"disD" isEqualToString:info] ) {
-    //     NSLog(@"Ignore disD");
+    //     [self log:@"Ignore disD"];
     //     return;
     // }
     // if( [@"disN" isEqualToString:info] ) {
-    //     NSLog(@"Ignore disN");
+    //     [self log:@"Ignore disN"];
     //     return;
     // }
     NSArray *strings = [info componentsSeparatedByString:@"\r\n"];
     NSString *header = [strings objectAtIndex:0];
     if( [@"disR" isEqualToString:header] ) {
-        NSLog(@"Ignore disR");
+        [self log:@"Ignore disR"];
         return;
     }
     NSString *host = [UdpSocket hostname:address];
     int count = strings.count;
     if (count==2) {
-        NSLog(@"got binding : %@",strings);
+        [self log:@"got binding : %@",strings];
         [self onHost:host binding:header];
         return;
     }
     if (count>3) {
-        NSLog(@"got host");
+        [self log:@"got host"];
         [self onHost:host discovery:strings];
         return;
     }
     // WTF?
-    NSLog(@"WTF?");
+    [self log:@"WTF?@"];
 }
 
 
@@ -287,7 +288,7 @@
 #pragma mark UdpSocketTxDelegate
 -(void)udpSocket:(UdpSocket *)socket txError:(int)error
 {
-    NSLog(@"udpsocket txError %d",error);
+    [self log:@"udpsocket txError %d",error];
 }
 
 -(void)udpSocket:(UdpSocket *)socket sentDataWithTag:(NSObject *)tag
@@ -299,16 +300,16 @@
 #pragma mark UdpSocketRxDelegate
 -(void)udpSocket:(UdpSocket *)socket rxError:(int)error
 {
-    NSLog(@"udpsocket rxError %d",error);
+    [self log:@"udpsocket rxError %d",error];
 }
 
 -(void)udpSocket:(UdpSocket *)socket receivedData:(UdpSocketPacket *)packet
 {
-    if( !packet ) {
-        NSLog(@"udpSocketRxData: No data?");
-        return;
+    if( packet ) {
+        [self onRxData:packet.data address:packet.address];
+    } else {
+        [self log:@"udpSocketRxData: No data?"];
     }
-    [self onRxData:packet.data address:packet.address];
 }
 
 @end

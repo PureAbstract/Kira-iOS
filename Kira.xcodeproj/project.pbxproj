@@ -17,6 +17,7 @@
 		28F335F11007B36200424DE2 /* RootViewController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 28F335F01007B36200424DE2 /* RootViewController.xib */; };
 		E336916513AFFCA50024085F /* KiraModuleViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E336916413AFFCA50024085F /* KiraModuleViewController.m */; };
 		E336916E13AFFCF00024085F /* KiraModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E336916D13AFFCF00024085F /* KiraModule.m */; };
+		E3AF91E1158CC71600E2833B /* Logging.m in Sources */ = {isa = PBXBuildFile; fileRef = E3AF91E0158CC71600E2833B /* Logging.m */; };
 		E3E59C96157EE7DD0054F05D /* UdpSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = E3E59C95157EE7DD0054F05D /* UdpSocket.m */; };
 		E3E5A016157F286B0054F05D /* UITableView+UpdateHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = E3E5A015157F286B0054F05D /* UITableView+UpdateHelper.m */; };
 /* End PBXBuildFile section */
@@ -39,6 +40,8 @@
 		E336916413AFFCA50024085F /* KiraModuleViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KiraModuleViewController.m; sourceTree = "<group>"; };
 		E336916C13AFFCF00024085F /* KiraModule.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = KiraModule.h; sourceTree = "<group>"; };
 		E336916D13AFFCF00024085F /* KiraModule.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = KiraModule.m; sourceTree = "<group>"; };
+		E3AF91DF158CC71600E2833B /* Logging.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Logging.h; sourceTree = "<group>"; };
+		E3AF91E0158CC71600E2833B /* Logging.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Logging.m; sourceTree = "<group>"; };
 		E3E59C94157EE7DD0054F05D /* UdpSocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UdpSocket.h; sourceTree = "<group>"; };
 		E3E59C95157EE7DD0054F05D /* UdpSocket.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = UdpSocket.m; sourceTree = "<group>"; };
 		E3E5A014157F286B0054F05D /* UITableView+UpdateHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "UITableView+UpdateHelper.h"; sourceTree = "<group>"; };
@@ -62,6 +65,8 @@
 		080E96DDFE201D6D7F000001 /* Classes */ = {
 			isa = PBXGroup;
 			children = (
+				E3AF91DF158CC71600E2833B /* Logging.h */,
+				E3AF91E0158CC71600E2833B /* Logging.m */,
 				E3E59C94157EE7DD0054F05D /* UdpSocket.h */,
 				E3E59C95157EE7DD0054F05D /* UdpSocket.m */,
 				E336916C13AFFCF00024085F /* KiraModule.h */,
@@ -196,6 +201,7 @@
 				E336916E13AFFCF00024085F /* KiraModule.m in Sources */,
 				E3E59C96157EE7DD0054F05D /* UdpSocket.m in Sources */,
 				E3E5A016157F286B0054F05D /* UITableView+UpdateHelper.m in Sources */,
+				E3AF91E1158CC71600E2833B /* Logging.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

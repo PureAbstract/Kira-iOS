@@ -15,6 +15,8 @@
 -(void)udpSocket:(UdpSocket *)socket sentDataWithTag:(NSObject *)tag;
 @end
 
+
+// Internal
 @interface UdpSocketPacket : NSObject {
     NSData *data_;
     NSData *address_;

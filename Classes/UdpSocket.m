@@ -6,6 +6,7 @@
 #import <arpa/inet.h>
 #import <net/if.h>
 #import <CFNetwork/CFNetwork.h>
+#import "Logging.h"
 
 // Create an NSData representing an sockaddr_in
 static NSData *getInAddr( in_addr_t address, UInt16 port ) {
@@ -16,6 +17,16 @@ static NSData *getInAddr( in_addr_t address, UInt16 port ) {
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = address;
     return [NSData dataWithBytes:&addr length:sizeof(addr)];
+}
+
+struct addrinfo *addressWithFamily( struct addrinfo *p, int family )
+{
+    for( ; p ; p = p->ai_next ) {
+        if( p->ai_family == family ) {
+            return p;
+        }
+    }
+    return NULL;
 }
 
 static NSData *getHostAddress( NSString *host, UInt16 port ) {
@@ -38,19 +49,21 @@ static NSData *getHostAddress( NSString *host, UInt16 port ) {
     struct addrinfo *results = 0;
     int error = getaddrinfo( [host UTF8String], [sPort UTF8String], &hint, &results );
     if( error ) {
-        NSLog(@"getaddrinfo [%@:%@] failed: %d - %s",host,sPort,error,gai_strerror(error));
+        [[Logger logger] log:@"getaddrinfo [%@:%@] failed: %d - %s",
+                         host,
+                         sPort,
+                         error,
+                         gai_strerror(error)];
         return nil;
     }
     NSData *rv = nil;
-    for( struct addrinfo *p = results ; p ; p = p->ai_next ) {
-        if( p->ai_family == AF_INET ) {
-            rv = [NSData dataWithBytes:p->ai_addr length:p->ai_addrlen];
-            break;
-        }
+    struct addrinfo *address = addressWithFamily( results, AF_INET );
+    if( address ) {
+        rv = [NSData dataWithBytes:address->ai_addr length:address->ai_addrlen];
     }
     freeaddrinfo( results );
     if( !rv ) {
-        NSLog(@"getHostAddress(%@,%@) - failed?",host,sPort);
+        [[Logger logger] log:@"getHostAddress(%@,%@) - failed?",host,sPort];
     }
 
     return rv;
@@ -159,7 +172,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 {
     NSData *addr = getHostAddress( host, port );
     if( !addr ) {
-        NSLog(@"bindToHost:port - getHostAddress failed");
+        [self log:@"bindToHost:port - getHostAddress failed"];
         return NO;
     }
     // enable reuseaddr
@@ -167,11 +180,11 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
     setsockopt( CFSocketGetNative(socket_), SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on) );
     // bind
     CFSocketError err = CFSocketSetAddress( socket_, (CFDataRef)addr );
-    if( err == kCFSocketSuccess ) {
-        return YES;
+    if( err != kCFSocketSuccess ) {
+        [self log:@"bindToHost:port - CFSocketSetAddress failed %d",err];
+        return NO;
     }
-    NSLog(@"bindToHost:port - CFSocketSetAddress failed");
-    return NO;
+    return YES;
 }
 
 -(BOOL)bindToPort:(UInt16)port
@@ -228,11 +241,11 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 -(void)tryWrite:(CFSocketRef)socket
 {
     if( sendQueue_.count < 1 ) {
-        NSLog(@"tryWrite: Send buffer empty");
+        [self log:@"tryWrite: Send buffer empty"];
         return;
     }
     if( ![self canWrite:socket] ) {
-        NSLog(@"tryWrite: Socket not writeable");
+        [self log:@"tryWrite: Socket not writeable"];
         return;
     }
     // Pop a packet from the queue...
@@ -253,6 +266,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
         }
     } else {
         // This is bad...
+        [self log:@"tryWrite: Send %d of %d",sent,packet.data.length];
         [self delegateTxError:errno]; // FIXME
     }
     [packet release];
@@ -269,7 +283,7 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
 {
     NSData *hostAddr = getHostAddress( host, port );
     if( !hostAddr ) {
-        NSLog(@"%@:send - bad address",[self class]);
+        [self log:@"%@:send - bad address",[self class]];
         return NO;
     }
     UdpSocketPacket *packet = [[UdpSocketPacket alloc] initWithData:data address:hostAddr tag:tag];
@@ -279,15 +293,22 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
     return YES;
 }
 
+
+// Called from the callback
 -(void)onRead:(CFSocketRef)socket
 {
     if( ![self canRead:socket] ) {
-        NSLog(@"onRead: Socket not readable");
+        [self log:@"onRead: Socket not readable"];
         return;
     }
     // Recieve the packet...
     size_t size = 32768;        // Magic number
     void *buf = malloc( size );
+    if( !buf ) {
+        // This is bad...
+        [self delegateRxError:ENOMEM];
+        return;
+    }
     struct sockaddr_in addr;
     bzero( &addr, sizeof(addr) );
     socklen_t len = sizeof(addr);
@@ -298,14 +319,15 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
                            (struct sockaddr *)&addr,
                            &len );
     if( result < 0 ) {
-        NSLog(@"Receive failed %d",result);
+        [self log:@"Receive failed %d : %d",result,errno];
         free(buf);
         [self delegateRxError:errno];
         return;
     }
-    // Try and realloc...
+
     if( result < size ) {
-        // realloc(0) is often equivalent to free. We don't want that...
+        // Try and shrink the buffer
+        // Note that realloc(0) is often equivalent to free. We don't want that...
         void *p = realloc( buf, ( result > 0 ) ? result : 1 );
         if( p ) {
             buf = p;
@@ -317,19 +339,17 @@ static void UdpSocketCFSocketCallback( CFSocketRef socket,
     NSData *data = [[NSData alloc] initWithBytesNoCopy:buf
                                                 length:result
                                           freeWhenDone:YES];
-    NSData *address = [[NSData alloc] initWithBytes:&addr length:len];
     UdpSocketPacket *packet = [[UdpSocketPacket alloc] initWithData:data
-                                                    address:address
-                                                        tag:nil];
+                                                            address:[NSData dataWithBytes:&addr length:len]
+                                                                tag:nil];
 
-    [address release];
     [data release];
     if( rxDelegate_ && [rxDelegate_ respondsToSelector:@selector(udpSocket:receivedData:)] ) {
         [rxDelegate_ udpSocket:self
                   receivedData:packet];
     } else {
         // Just discard it
-        NSLog(@"Discarding packet");
+        [self log:@"Discarding packet"];
     }
     [packet release];
 }
@@ -366,19 +386,19 @@ static const struct sockaddr_in6 *dataAsSockAddr6( NSData *data )
 // TODO: These for sockaddr_in6
 +(BOOL)data:(NSData *)data toSockaddr:(struct sockaddr_in*)sockaddr
 {
-    NSAssert( sockaddr, @"NULL sockaddr" );
     if( !sockaddr ) {
-        NSLog(@"data->toSockaddr : NULL buffer" );
+        NSAssert( sockaddr, @"NULL sockaddr" );
+        [self log:@"data->toSockaddr : NULL buffer"];
         return NO;
     }
     bzero( sockaddr, sizeof(*sockaddr) );
     if( data.length != sizeof(*sockaddr) ) {
-        NSLog(@"data->toSockaddr : bad size");
+        [self log:@"data->toSockaddr : bad size"];
         return NO;
     }
     [data getBytes:sockaddr length:sizeof(*sockaddr)];
     if( sockaddr->sin_family != AF_INET ) {
-        NSLog(@"data->toSockaddr : Bad family");
+        [self log:@"data->toSockaddr : Bad family"];
         return NO;
     }
     return YES;
@@ -392,7 +412,7 @@ static const struct sockaddr_in6 *dataAsSockAddr6( NSData *data )
     if( p4 ) {
         char buffer[INET_ADDRSTRLEN];
         if( !inet_ntop(AF_INET, &p4->sin_addr, buffer, sizeof(buffer) ) ) {
-            NSLog(@"hostname : inet_ntop failed %d",errno);
+            [self log:@"hostname : inet_ntop failed %d",errno];
             return nil;
         }
         return [NSString stringWithCString:buffer encoding:NSASCIIStringEncoding];
@@ -401,7 +421,7 @@ static const struct sockaddr_in6 *dataAsSockAddr6( NSData *data )
     if( p6 ) {
         char buffer[INET6_ADDRSTRLEN];
         if( !inet_ntop( AF_INET6, &p6->sin6_addr, buffer, sizeof(buffer) ) ) {
-            NSLog(@"hostname : inet_ntop failed %d",errno);
+            [self log:@"hostname : inet_ntop failed %d",errno];
             return nil;
         }
         return [NSString stringWithCString:buffer encoding:NSASCIIStringEncoding];
@@ -444,7 +464,7 @@ static const struct sockaddr_in6 *dataAsSockAddr6( NSData *data )
         case kCFSocketDataCallBack:
         case kCFSocketConnectCallBack:
         default:
-            NSLog(@"Unexpected socket callback 0x%02x",type);
+            [self log:@"Unexpected socket callback 0x%02x",type];
             break;
         }
 }

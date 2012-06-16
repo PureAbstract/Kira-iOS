@@ -7,6 +7,7 @@
 //
 
 #import "KiraModule.h"
+#import "Logging.h"
 
 @implementation KiraModule
 @synthesize discover;
@@ -44,8 +45,7 @@
     NSString *index = [binding substringToIndex:2];
     NSAssert(index.length==2,@"Bad index");
     NSString *mapping = [binding substringFromIndex:3];
-    NSLog(@"[%@][%@]",index,mapping);
+    [self log:@"[%@][%@]",index,mapping];
     [_bindings setObject:mapping forKey:index];
 }
-
 @end
